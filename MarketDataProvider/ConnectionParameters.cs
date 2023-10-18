@@ -2,9 +2,10 @@
 
 namespace MarketDataProvider
 {
+    [Serializable]
     public class ConnectionParameters
     {
-        public required Uri Uri { get; set; }
+        public string? Uri { get; set; }
         public int ReconnectionAttempts { get; set; }
         public TimeSpan ReconnectionInterval { get; set; }
         public TimeSpan ConnectionTimeout { get; set; }

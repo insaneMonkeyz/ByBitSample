@@ -5,3 +5,6 @@
 /.vs
 /MarketDataProvider/obj
 /MarketDataProvider/.vs
+/ConsoleUI/bin/Debug/net7.0
+/ConsoleUI/obj
+/MarketDataProvider/bin/Debug/net7.0

@@ -12,15 +12,21 @@ namespace MarketDataProvider
         private Timer? _heartbeatTimer;
         private bool _disposed;
 
+        private ConnectionState _connectionState;
         public ConnectionState ConnectionState
         {
-            get => _websocket.State switch
+            get => _connectionState;
+            set
             {
-                WebSocketState.Open => ConnectionState.Connected,
-                WebSocketState.Connecting => ConnectionState.Connecting,
-                WebSocketState.CloseSent => ConnectionState.Disconnecting,
-                _ => ConnectionState.Disconnected
-            };
+                if (value == _connectionState)
+                {
+                    return;
+                }
+
+                _connectionState = value;
+
+                ConnectionStateChanged?.Invoke(this, value);
+            }
         }
 
         public event EventHandler<ConnectionState>? ConnectionStateChanged;
@@ -30,19 +36,22 @@ namespace MarketDataProvider
             _heartbeatMessageFactory = heartbeatMessageFactory 
                 ?? throw new ArgumentNullException(nameof(heartbeatMessageFactory));
 
-            _log = log ?? throw new ArgumentNullException(nameof(log));
+            _log = log;// ?? throw new ArgumentNullException(nameof(log));
 
             _websocket = new ClientWebSocket();
         }
 
         public async Task ConnectAsync(ConnectionParameters parameters, CancellationToken userCancellation)
         {
-            if (_disposed)
+            if (_disposed || ConnectionState == ConnectionState.Connecting
+                          || ConnectionState == ConnectionState.Connected)
             {
                 return;
             }
 
             _connectionParameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
+
+            ConnectionState = ConnectionState.Connecting;
 
             for (int attemptNum = 0; attemptNum <= parameters.ReconnectionAttempts; attemptNum++)
             {
@@ -54,10 +63,11 @@ namespace MarketDataProvider
                 using var timeoutCancellation = new CancellationTokenSource(parameters.ConnectionTimeout);
                 using var aggregateCancellation = CancellationTokenSource.CreateLinkedTokenSource(userCancellation, timeoutCancellation.Token);
 
-                await _websocket.ConnectAsync(parameters.Uri, aggregateCancellation.Token);
+                await _websocket.ConnectAsync(new(parameters.Uri), aggregateCancellation.Token);
 
                 if (_websocket.State == WebSocketState.Open)
                 {
+                    ConnectionState = ConnectionState.Connected;
                     SetHeartbeatTask(parameters.HeartbeatInterval);
                     return;
                 }
@@ -67,10 +77,13 @@ namespace MarketDataProvider
         }
         public async Task DisconnectAsync(CancellationToken userCancellation)
         {
-            if (_disposed || _websocket.State != WebSocketState.Open)
+            if (_disposed || ConnectionState == ConnectionState.Disconnected
+                          || ConnectionState == ConnectionState.Disconnecting)
             {
                 return;
             }
+
+            ConnectionState = ConnectionState.Disconnecting;
 
             StopHeartbeatTask();
 
@@ -78,6 +91,8 @@ namespace MarketDataProvider
             using var aggregateCancellation = CancellationTokenSource.CreateLinkedTokenSource(userCancellation, timeoutCancellation.Token);
 
             await _websocket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, aggregateCancellation.Token);
+
+            ConnectionState = ConnectionState.Disconnected;
         }
 
         public void Dispose()
