@@ -1,5 +1,6 @@
 ﻿using System.Net.WebSockets;
 using System.Text.Json;
+using MarketDataProvider.Exceptions;
 using MarketDataProvider.WebSocket;
 using Microsoft.Extensions.Logging;
 
@@ -75,7 +76,8 @@ namespace MarketDataProvider
                 }
             }
 
-            throw new Exception($"Could not establish connection with {parameters.Uri} even after {parameters.ReconnectionAttempts} attempts");
+            ConnectionState = ConnectionState.Disconnected;
+            throw new ConnectionException($"Could not establish connection with {parameters.Uri} even after {parameters.ReconnectionAttempts} attempts");
         }
         public async Task DisconnectAsync(CancellationToken userCancellation)
         {

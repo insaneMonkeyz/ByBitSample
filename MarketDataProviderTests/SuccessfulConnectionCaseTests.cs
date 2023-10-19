@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Linq.Expressions;
 using System.Net.WebSockets;
 using MarketDataProvider;
@@ -10,6 +11,7 @@ namespace MarketDataProviderTests
     {
         ConnectionParameters _connectionParams;
         SocketMockFactory _socketMockFactory;
+        IConnection _connection;
 
         Expression<Func<IWebSocketClient, Task>> DefaultConnectAsyncInvokation
         {
@@ -34,6 +36,7 @@ namespace MarketDataProviderTests
                 ConnectionTimeout = TimeSpan.FromSeconds(10),
             };
             _socketMockFactory = new();
+            _connection = ConnectionsFactory.CreateByBitConnection(_socketMockFactory);
 
             var socketMock = _socketMockFactory.Mock;
 
@@ -50,31 +53,28 @@ namespace MarketDataProviderTests
         [Test]
         public async Task ConnectionStateOnConnected()
         {
-            var connection = ConnectionsFactory.CreateByBitConnection(_socketMockFactory);
-            var connectiontask = connection.ConnectAsync(_connectionParams, CancellationToken.None);
+            var connectiontask = _connection.ConnectAsync(_connectionParams, CancellationToken.None);
 
-            Assert.That(connection.ConnectionState, Is.EqualTo(ConnectionState.Connecting));
+            Assert.That(_connection.ConnectionState, Is.EqualTo(ConnectionState.Connecting));
 
             await connectiontask;
 
-            Assert.That(connection.ConnectionState, Is.EqualTo(ConnectionState.Connected));
+            Assert.That(_connection.ConnectionState, Is.EqualTo(ConnectionState.Connected));
         }
 
         [Test]
         public async Task RequestsConnectionOnlyOnce()
         {
-            var connection = ConnectionsFactory.CreateByBitConnection(_socketMockFactory);
-
-            var connectiontask0 = connection.ConnectAsync(_connectionParams, CancellationToken.None);
+            var connectiontask0 = _connection.ConnectAsync(_connectionParams, CancellationToken.None);
 
             await Task.Delay(100);
-            var connectiontask1 = connection.ConnectAsync(_connectionParams, CancellationToken.None);
+            var connectiontask1 = _connection.ConnectAsync(_connectionParams, CancellationToken.None);
 
             await Task.Delay(100);
-            var connectiontask2 = connection.ConnectAsync(_connectionParams, CancellationToken.None);
+            var connectiontask2 = _connection.ConnectAsync(_connectionParams, CancellationToken.None);
 
             await Task.Delay(100);
-            var connectiontask3 = connection.ConnectAsync(_connectionParams, CancellationToken.None);
+            var connectiontask3 = _connection.ConnectAsync(_connectionParams, CancellationToken.None);
 
             await Task.WhenAll(connectiontask0, connectiontask1, connectiontask2, connectiontask3);
 
@@ -86,10 +86,8 @@ namespace MarketDataProviderTests
         [Test]
         public async Task CanDisconnectWhenConnected()
         {
-            var connection = ConnectionsFactory.CreateByBitConnection(_socketMockFactory);
-
-            await connection.ConnectAsync(_connectionParams, CancellationToken.None);
-            await connection.DisconnectAsync(CancellationToken.None);
+            await _connection.ConnectAsync(_connectionParams, CancellationToken.None);
+            await _connection.DisconnectAsync(CancellationToken.None);
 
             _socketMockFactory
                 .Mock
