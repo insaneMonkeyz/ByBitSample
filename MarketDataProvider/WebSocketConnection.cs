@@ -1,4 +1,5 @@
 ﻿using System.Net.WebSockets;
+using MarketDataProvider.WebSocket;
 using Microsoft.Extensions.Logging;
 
 namespace MarketDataProvider
@@ -6,7 +7,7 @@ namespace MarketDataProvider
     internal class WebSocketConnection : IConnection, IDisposable
     {
         private readonly ILogger _log;
-        private readonly ClientWebSocket _websocket;
+        private readonly IWebSocketClient _websocket;
         private readonly IHeartbeatMessageFactory _heartbeatMessageFactory;
         private ConnectionParameters? _connectionParameters;
         private Timer? _heartbeatTimer;
@@ -31,14 +32,14 @@ namespace MarketDataProvider
 
         public event EventHandler<ConnectionState>? ConnectionStateChanged;
 
-        public WebSocketConnection(ILogger? log, IHeartbeatMessageFactory? heartbeatMessageFactory)
+        public WebSocketConnection(ILogger log, IHeartbeatMessageFactory heartbeatMessageFactory, IAbstractWebSocketFactory socketFactory)
         {
             _heartbeatMessageFactory = heartbeatMessageFactory 
                 ?? throw new ArgumentNullException(nameof(heartbeatMessageFactory));
 
             _log = log;// ?? throw new ArgumentNullException(nameof(log));
 
-            _websocket = new ClientWebSocket();
+            _websocket = socketFactory.CreateWebSocketClient();
         }
 
         public async Task ConnectAsync(ConnectionParameters parameters, CancellationToken userCancellation)
@@ -139,9 +140,15 @@ namespace MarketDataProvider
                 var heartbeatObj = _heartbeatMessageFactory.GetNextMessage();
                 var msgBuffer = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(heartbeatObj);
 
-                _websocket
-                    .SendAsync(msgBuffer, WebSocketMessageType.Text, false, CancellationToken.None)
-                    .Wait(_connectionParameters!.ConnectionTimeout);
+                var faulted =
+                    _websocket
+                        .SendAsync(msgBuffer, WebSocketMessageType.Text, WebSocketMessageFlags.None, CancellationToken.None)
+                        .IsFaulted;
+
+                if (faulted)
+                {
+                    throw new Exception("WebSocket did not send the message");
+                }
             }
             catch (Exception e)
             {
