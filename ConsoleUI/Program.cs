@@ -77,7 +77,7 @@ internal class Program
 
     private static void Initialize()
     {
-        _bybit = ConnectionsFactory.CreateByBitConnection(null);
+        _bybit = ConnectionsFactory.CreateByBitConnection();
         _bybit.ConnectionStateChanged += (sender, state) => Console.WriteLine($"State changed: {state}");
     }
 }

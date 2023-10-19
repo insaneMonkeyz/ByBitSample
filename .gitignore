@@ -8,3 +8,7 @@
 /ConsoleUI/bin/Debug/net7.0
 /ConsoleUI/obj
 /MarketDataProvider/bin/Debug/net7.0
+/MarketDataProviderTests/bin/Debug/net7.0
+/MarketDataProviderTests/Fakes
+/MarketDataProviderTests/FakesAssemblies
+/MarketDataProviderTests/obj

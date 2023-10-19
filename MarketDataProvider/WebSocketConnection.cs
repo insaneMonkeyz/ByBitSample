@@ -1,4 +1,5 @@
 ﻿using System.Net.WebSockets;
+using System.Text.Json;
 using MarketDataProvider.WebSocket;
 using Microsoft.Extensions.Logging;
 
@@ -138,7 +139,7 @@ namespace MarketDataProvider
             try
             {
                 var heartbeatObj = _heartbeatMessageFactory.GetNextMessage();
-                var msgBuffer = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(heartbeatObj);
+                var msgBuffer = JsonSerializer.SerializeToUtf8Bytes(heartbeatObj);
 
                 var faulted =
                     _websocket
