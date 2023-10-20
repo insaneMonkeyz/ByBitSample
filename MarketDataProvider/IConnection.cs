@@ -1,6 +1,6 @@
 ﻿namespace MarketDataProvider
 {
-    public interface IConnection
+    public interface IConnection : IDisposable
     {
         event EventHandler<ConnectionState> ConnectionStateChanged;
         ConnectionState ConnectionState { get; }

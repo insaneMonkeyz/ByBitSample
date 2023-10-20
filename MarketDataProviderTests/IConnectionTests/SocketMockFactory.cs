@@ -1,9 +1,9 @@
 ﻿using MarketDataProvider.WebSocket;
 using Moq;
 
-namespace MarketDataProviderTests
+namespace MarketDataProviderTests.IConnectionTests
 {
-    internal class SocketMockFactory : IAbstractWebSocketFactory
+    public class SocketMockFactory : IAbstractWebSocketFactory
     {
         public Mock<IWebSocketClient> Mock { get; }
 

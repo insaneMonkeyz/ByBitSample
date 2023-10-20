@@ -17,17 +17,17 @@ namespace MarketDataProvider.WebSocket
         public async Task CloseAsync(WebSocketCloseStatus closeStatus, string? statusDescription, CancellationToken cancellationToken)
             => await _socket.CloseAsync(closeStatus, statusDescription, cancellationToken);
 
-        public ValueTask SendAsync(
+        public async Task SendAsync(
             ReadOnlyMemory<byte> buffer,
                 WebSocketMessageType msgType,
                     WebSocketMessageFlags msgFlags,
                         CancellationToken cancellationToken)
         {
-            return _socket.SendAsync(buffer, msgType, msgFlags, cancellationToken);
+            await _socket.SendAsync(buffer, msgType, msgFlags, cancellationToken).AsTask();
         }
 
-        public ValueTask<ValueWebSocketReceiveResult> ReceiveAsync(Memory<byte> buffer, CancellationToken cancellationToken)
-            => _socket.ReceiveAsync(buffer, cancellationToken);
+        public async Task ReceiveAsync(Memory<byte> buffer, CancellationToken cancellationToken)
+            => await _socket.ReceiveAsync(buffer, cancellationToken).AsTask();
 
         public void Abort() => _socket.Abort();
 

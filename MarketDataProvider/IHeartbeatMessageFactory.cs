@@ -1,6 +1,6 @@
 ﻿namespace MarketDataProvider
 {
-    internal interface IHeartbeatMessageFactory
+    public interface IHeartbeatMessageFactory
     {
         object GetNextMessage();
     }

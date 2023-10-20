@@ -9,29 +9,11 @@ using Moq;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
-namespace MarketDataProviderTests
+namespace MarketDataProviderTests.IConnectionTests
 {
-    public class FailedConnectionCaseTests
+    public class FailedConnectionCaseTests : ConnectionTest
     {
-        ConnectionParameters _connectionParams;
-        SocketMockFactory _socketMockFactory;
-        IConnection _connection;
-
-        Expression<Func<IWebSocketClient, Task>> DefaultConnectAsyncInvokation
-        {
-            get => socket => socket.ConnectAsync(It.IsNotNull<Uri>(), It.IsAny<CancellationToken>());
-        }
-        Expression<Func<IWebSocketClient, Task>> DefaultCloseAsyncInvokation
-        {
-            get =>
-                socket =>
-                socket.CloseAsync(
-                        It.Is<WebSocketCloseStatus>(status => status == WebSocketCloseStatus.NormalClosure),
-                        It.IsAny<string?>(),
-                        It.IsAny<CancellationToken>());
-        }
-
-        [SetUp] 
+        [SetUp]
         public void SetUp()
         {
             _connectionParams = new()
@@ -40,6 +22,11 @@ namespace MarketDataProviderTests
                 ConnectionTimeout = TimeSpan.FromSeconds(10),
             };
             _socketMockFactory = new();
+
+            _socketMockFactory.Mock
+                .Setup(DefaultConnectAsyncInvokation)
+                .Throws(new TimeoutException("connection aborted by server"));
+
             _connection = ConnectionsFactory.CreateByBitConnection(_socketMockFactory);
         }
 
@@ -47,7 +34,7 @@ namespace MarketDataProviderTests
         [TestCase(0)]
         [TestCase(1)]
         [TestCase(4)]
-        [TestCase(9)]
+        [TestCase(99)]
         public async Task ReconnectsOnConnectionFailure(int reconnectAttemptsNum)
         {
             _connectionParams.ReconnectionAttempts = reconnectAttemptsNum;
@@ -114,14 +101,13 @@ namespace MarketDataProviderTests
         }
 
         [Test]
-        [TestCase(0)]
-        [TestCase(200)]
-        [TestCase(1_000)]
-        [TestCase(5_000)]
-        [TestCase(20_000)]
-        public async Task RespectsReconnectIntervals(int reconnectIntervalMillisec)
+        [TestCase(0, 3729)]
+        [TestCase(200, 8)]
+        [TestCase(1_000, 7)]
+        [TestCase(5_000, 4)]
+        public async Task RespectsReconnectIntervals(int reconnectIntervalMillisec, int reconnectAttempts)
         {
-            _connectionParams.ReconnectionAttempts = 5;
+            _connectionParams.ReconnectionAttempts = reconnectAttempts;
             _connectionParams.ReconnectionInterval = TimeSpan.FromMilliseconds(reconnectIntervalMillisec);
 
             var measuretask = MeasureTime(async (beginMeasuring, registerTime) =>
@@ -140,6 +126,7 @@ namespace MarketDataProviderTests
 
             var timings = await measuretask;
 
+            Assert.That(timings.Count(), Is.EqualTo(_connectionParams.ReconnectionAttempts));
             Assert.That(IsWithinErrorRange(reconnectIntervalMillisec, timings));
         }
 
@@ -163,26 +150,6 @@ namespace MarketDataProviderTests
             var actualDifference = actualAverage - expectedAverageValue;
 
             return actualDifference < expectedErrorValue && standardDeviation < expectedErrorValue;
-        }
-
-        private async Task<IEnumerable<double>> MeasureTime(Func<Action, Action, Task> measuredSubject)
-        {
-            var timer = new Stopwatch();
-            var timings = new List<double>();
-
-            void registerTime()
-            {
-                timings.Add(timer.ElapsedMilliseconds);
-                timer.Restart();
-            }
-
-            await measuredSubject(timer.Start, registerTime);
-
-            // first result is a regular connect attempt,
-            // not a reconnect
-            timings.RemoveAt(0);
-
-            return timings.Where(t => t != default);
         }
     }
 }

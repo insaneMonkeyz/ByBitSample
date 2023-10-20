@@ -6,8 +6,11 @@ using Microsoft.Extensions.Logging;
 
 namespace MarketDataProvider
 {
-    internal class WebSocketConnection : IConnection, IDisposable
+    internal class WebSocketConnection : IConnection
     {
+        private static readonly TimeSpan _smallestHeartbeatRepeatFrequency = TimeSpan.FromMilliseconds(100);
+        private static readonly TimeSpan _smallestConnectionTimeout = TimeSpan.FromMilliseconds(100);
+
         private readonly ILogger _log;
         private readonly IWebSocketClient _websocket;
         private readonly IHeartbeatMessageFactory _heartbeatMessageFactory;
@@ -44,6 +47,9 @@ namespace MarketDataProvider
             _websocket = socketFactory.CreateWebSocketClient();
         }
 
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ArgumentException"></exception>
+        /// <exception cref="ConnectionException"></exception>
         public async Task ConnectAsync(ConnectionParameters parameters, CancellationToken userCancellation)
         {
             if (_disposed || ConnectionState == ConnectionState.Connecting
@@ -52,11 +58,14 @@ namespace MarketDataProvider
                 return;
             }
 
-            _connectionParameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
+            ValidateParameters(parameters);
 
+            _connectionParameters = parameters;
             ConnectionState = ConnectionState.Connecting;
 
-            for (int attemptNum = 0; attemptNum <= parameters.ReconnectionAttempts; attemptNum++)
+            var infinite = parameters.ReconnectionAttempts == Timeout.Infinite;
+
+            for (int attemptNum = 0; infinite || attemptNum <= parameters.ReconnectionAttempts; attemptNum++)
             {
                 if (attemptNum != 0)
                 {
@@ -66,11 +75,20 @@ namespace MarketDataProvider
                 using var timeoutCancellation = new CancellationTokenSource(parameters.ConnectionTimeout);
                 using var aggregateCancellation = CancellationTokenSource.CreateLinkedTokenSource(userCancellation, timeoutCancellation.Token);
 
-                await _websocket.ConnectAsync(new(parameters.Uri), aggregateCancellation.Token);
+                try
+                {
+                    await _websocket.ConnectAsync(new(parameters.Uri!), aggregateCancellation.Token);
+                }
+                catch (Exception)
+                {
+                    // TODO: log exception
+                    continue;
+                }
 
                 if (_websocket.State == WebSocketState.Open)
                 {
                     ConnectionState = ConnectionState.Connected;
+                    BeginListening();
                     SetHeartbeatTask(parameters.HeartbeatInterval);
                     return;
                 }
@@ -111,9 +129,62 @@ namespace MarketDataProvider
             _heartbeatTimer?.Dispose();
         }
 
+        private void ValidateParameters(ConnectionParameters parameters)
+        {
+            if (parameters is null)
+            {
+                throw new ArgumentNullException(nameof(parameters));
+            }
+
+            if (parameters.Uri is null)
+            {
+                throw new ArgumentException($"uri is null");
+            }
+
+            if (parameters.UseHeartbeating && parameters.HeartbeatInterval < _smallestHeartbeatRepeatFrequency)
+            {
+                throw new ArgumentException(string.Format(
+                    "If {0}.{1} is set, {0}.{2} must be at least {3}. Setting the value too small will cause " +
+                    "the server to flood, resulting in the connection being aborted.",
+                /*0*/   nameof(ConnectionParameters),
+                    /*1*/   nameof(ConnectionParameters.UseHeartbeating),
+                        /*2*/   nameof(ConnectionParameters.HeartbeatInterval),
+                            /*3*/   _smallestHeartbeatRepeatFrequency)); 
+            }
+
+            if (parameters.ConnectionTimeout < _smallestConnectionTimeout &&
+                parameters.ConnectionTimeout != Timeout.InfiniteTimeSpan)
+            {
+                throw new ArgumentException(
+                    $"A minimum connection timeout of {_smallestConnectionTimeout} is allowed");
+            }
+        }
+
+        private void BeginListening()
+        {
+            Task.Run(() =>
+            {
+                var buffer = new byte[1024];
+
+                while (!_disposed && _websocket.State == WebSocketState.Open)
+                {
+                    using var timeoutCancellation = new CancellationTokenSource(_connectionParameters!.ConnectionTimeout);
+
+                    try
+                    {
+                        _websocket.ReceiveAsync(buffer, timeoutCancellation.Token).Wait();
+                    }
+                    catch (Exception) when (timeoutCancellation.IsCancellationRequested && _websocket.State == WebSocketState.Open)
+                    {
+                        DisconnectAsync(CancellationToken.None);
+                    }
+                }
+            });
+        }
+
         private void SetHeartbeatTask(TimeSpan period)
         {
-            if (_connectionParameters?.UseHeartbeating is not true)
+            if (_connectionParameters!.UseHeartbeating is false)
             {
                 return;
             }
@@ -143,15 +214,9 @@ namespace MarketDataProvider
                 var heartbeatObj = _heartbeatMessageFactory.GetNextMessage();
                 var msgBuffer = JsonSerializer.SerializeToUtf8Bytes(heartbeatObj);
 
-                var faulted =
-                    _websocket
-                        .SendAsync(msgBuffer, WebSocketMessageType.Text, WebSocketMessageFlags.None, CancellationToken.None)
-                        .IsFaulted;
-
-                if (faulted)
-                {
-                    throw new Exception("WebSocket did not send the message");
-                }
+                _websocket
+                    .SendAsync(msgBuffer, WebSocketMessageType.Text, WebSocketMessageFlags.None, CancellationToken.None)
+                        .Wait();
             }
             catch (Exception e)
             {

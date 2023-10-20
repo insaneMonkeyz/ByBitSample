@@ -5,27 +5,10 @@ using MarketDataProvider;
 using MarketDataProvider.WebSocket;
 using Moq;
 
-namespace MarketDataProviderTests
+namespace MarketDataProviderTests.IConnectionTests
 {
-    public class SuccessfulConnectionCaseTests
+    public class SuccessfulConnectionCaseTests : ConnectionTest
     {
-        ConnectionParameters _connectionParams;
-        SocketMockFactory _socketMockFactory;
-        IConnection _connection;
-
-        Expression<Func<IWebSocketClient, Task>> DefaultConnectAsyncInvokation
-        {
-            get => socket => socket.ConnectAsync(It.IsNotNull<Uri>(), It.IsAny<CancellationToken>());
-        }
-        Expression<Func<IWebSocketClient, Task>> DefaultCloseAsyncInvokation
-        {
-            get =>
-                socket =>
-                socket.CloseAsync(
-                        It.Is<WebSocketCloseStatus>(status => status == WebSocketCloseStatus.NormalClosure),
-                        It.IsAny<string?>(),
-                        It.IsAny<CancellationToken>());
-        }
 
         [SetUp]
         public void Setup()
@@ -48,6 +31,12 @@ namespace MarketDataProviderTests
                     await Task.Delay(200);
                     socketMock.Setup(s => s.State).Returns(WebSocketState.Open);
                 });
+
+            _receiveFreezeTime = TimeSpan.FromMinutes(1);
+
+            socketMock
+                .Setup(DefaultReceiveAsyncInvokation)
+                .Returns(ReceiveAsyncFreeze);
         }
 
         [Test]
