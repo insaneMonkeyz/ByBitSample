@@ -24,12 +24,7 @@ namespace MarketDataProviderTests.IConnectionTests
 
             _socketMockFactory = new();
 
-            _heartbeatFactory = new Mock<IHeartbeatMessageFactory>();
-            _heartbeatMsg = new();
-            _heartbeatFactory
-                .Setup(f => f.GetNextMessage())
-                .Callback(() => ++_heartbeatMsg.Id)
-                .Returns(() => _heartbeatMsg);
+            SetupHeartbeatLogic();
 
             _connection = ConnectionsFactory.CreateByBitConnection(_socketMockFactory, _heartbeatFactory.Object);
 

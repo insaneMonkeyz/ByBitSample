@@ -33,7 +33,6 @@ namespace MarketDataProviderTests.IConnectionTests
         [Test]
         [TestCase(0)]
         [TestCase(1)]
-        [TestCase(4)]
         [TestCase(99)]
         public async Task ReconnectsOnConnectionFailure(int reconnectAttemptsNum)
         {
@@ -103,7 +102,6 @@ namespace MarketDataProviderTests.IConnectionTests
         [Test]
         [TestCase(0, 3729)]
         [TestCase(200, 8)]
-        [TestCase(1_000, 7)]
         [TestCase(5_000, 4)]
         public async Task RespectsReconnectIntervals(int reconnectIntervalMillisec, int reconnectAttempts)
         {

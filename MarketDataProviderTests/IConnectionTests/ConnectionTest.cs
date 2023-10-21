@@ -13,11 +13,11 @@ namespace MarketDataProviderTests.IConnectionTests
         protected IConnection _connection;
         protected ConnectionParameters _connectionParams;
 
-        protected Mock<IHeartbeatMessageFactory> _heartbeatFactory;
+        protected Mock<IHeartbeatProvider> _heartbeatFactory;
         protected Heartbeat _heartbeatMsg;
 
-        protected TimeSpan _receiveFreezeTime;
-        protected TimeSpan _sendFreezeTime;
+        protected TimeSpan _receiveFreezeTime = Timeout.InfiniteTimeSpan;
+        protected TimeSpan _sendFreezeTime = Timeout.InfiniteTimeSpan;
 
         protected SocketMockFactory _socketMockFactory;
 
@@ -66,6 +66,12 @@ namespace MarketDataProviderTests.IConnectionTests
             await Task.Delay(_sendFreezeTime, cancellation);
         }
 
+        [TearDown]
+        public void CleanUp()
+        {
+            _connection?.Dispose();
+        }
+
         protected async Task<IEnumerable<double>> MeasureTime(Func<Action, Action, Task> measuredSubject)
         {
             var timer = new Stopwatch();
@@ -86,10 +92,47 @@ namespace MarketDataProviderTests.IConnectionTests
             return timings;
         }
 
-        [TearDown]
-        public void CleanUp()
+        protected void SetupSeccussfulConnectAsync()
         {
-            _connection?.Dispose();
+            var socketMock = _socketMockFactory.Mock;
+
+            socketMock
+                .Setup(DefaultConnectAsyncInvokation)
+                .Returns(async () =>
+                {
+                    socketMock.Setup(s => s.State).Returns(WebSocketState.Connecting);
+                    await Task.Delay(200);
+                    socketMock.Setup(s => s.State).Returns(WebSocketState.Open);
+                });
+        }
+
+        protected void SetupHeartbeatLogic()
+        {
+            _heartbeatFactory = new Mock<IHeartbeatProvider>();
+            _heartbeatMsg = new();
+            _heartbeatFactory
+                .Setup(f => f.GetNextMessage())
+                .Callback(() => ++_heartbeatMsg.Id)
+                .Returns(() => _heartbeatMsg);
+
+        }
+
+        protected void SetupReceiveAsyncFreeze(TimeSpan freezeTime)
+        {
+            _receiveFreezeTime = freezeTime;
+
+            _socketMockFactory.Mock
+                .Setup(DefaultReceiveAsyncInvokation)
+                .Returns(ReceiveAsyncFreeze);
+        }
+
+        protected void SetupSendAsyncFreeze(TimeSpan freezeTime)
+        {
+            _sendFreezeTime = freezeTime;
+
+            _socketMockFactory.Mock
+                .Setup(DefaultSendAsyncInvokation)
+                .Returns(SendAsyncFreeze);
         }
     }
 }

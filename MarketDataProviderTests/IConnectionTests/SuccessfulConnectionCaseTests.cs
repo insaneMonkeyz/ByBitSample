@@ -21,20 +21,11 @@ namespace MarketDataProviderTests.IConnectionTests
             _socketMockFactory = new();
             _connection = ConnectionsFactory.CreateByBitConnection(_socketMockFactory);
 
-            var socketMock = _socketMockFactory.Mock;
-
-            socketMock
-                .Setup(DefaultConnectAsyncInvokation)
-                .Returns(async () =>
-                {
-                    socketMock.Setup(s => s.State).Returns(WebSocketState.Connecting);
-                    await Task.Delay(200);
-                    socketMock.Setup(s => s.State).Returns(WebSocketState.Open);
-                });
+            SetupSeccussfulConnectAsync();
 
             _receiveFreezeTime = TimeSpan.FromMinutes(1);
 
-            socketMock
+            _socketMockFactory.Mock
                 .Setup(DefaultReceiveAsyncInvokation)
                 .Returns(ReceiveAsyncFreeze);
         }
