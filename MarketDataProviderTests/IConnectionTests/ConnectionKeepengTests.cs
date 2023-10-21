@@ -3,7 +3,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using MarketDataProvider;
-using MarketDataProvider.Contracts.ByBit;
+using MarketDataProvider.Contracts.Bybit;
 using MarketDataProvider.WebSocket;
 using Moq;
 

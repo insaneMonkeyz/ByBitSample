@@ -1,4 +1,6 @@
-﻿namespace MarketDataProvider.Contracts.ByBit
+﻿using MarketDataProvider.Contracts.Bybit.Stream;
+
+namespace MarketDataProvider
 {
     internal class HeartbeatProvider : IHeartbeatProvider
     {
