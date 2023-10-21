@@ -1,4 +1,5 @@
-﻿using MarketDataProvider.WebSocket;
+﻿using MarketDataProvider.Contracts.ByBit;
+using MarketDataProvider.WebSocket;
 using Microsoft.Extensions.Logging;
 
 namespace MarketDataProvider
@@ -7,13 +8,13 @@ namespace MarketDataProvider
     {
         public static IConnection CreateByBitConnection()
         {
-            return new WebSocketConnection(null, new HeartbeatFactory(), new WebSocketClientFactory());
+            return new WebSocketConnection(null, new HeartbeatProvider(), new WebSocketClientFactory());
         }
         public static IConnection CreateByBitConnection(IAbstractWebSocketFactory socketFactory)
         {
-            return new WebSocketConnection(null, new HeartbeatFactory(), socketFactory);
+            return new WebSocketConnection(null, new HeartbeatProvider(), socketFactory);
         }
-        public static IConnection CreateByBitConnection(IAbstractWebSocketFactory socketFactory, IHeartbeatMessageFactory heartbeatFactory)
+        public static IConnection CreateByBitConnection(IAbstractWebSocketFactory socketFactory, IHeartbeatProvider heartbeatFactory)
         {
             return new WebSocketConnection(null, heartbeatFactory, socketFactory);
         }

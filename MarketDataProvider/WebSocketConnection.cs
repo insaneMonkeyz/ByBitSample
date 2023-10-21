@@ -1,8 +1,11 @@
 ﻿using System.Net.WebSockets;
-using System.Text.Json;
+using System.Text;
 using MarketDataProvider.Exceptions;
 using MarketDataProvider.WebSocket;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+
+using NetJsonDeserializer = System.Text.Json.JsonSerializer;
 
 namespace MarketDataProvider
 {
@@ -13,7 +16,7 @@ namespace MarketDataProvider
 
         private readonly ILogger _log;
         private readonly IWebSocketClient _websocket;
-        private readonly IHeartbeatMessageFactory _heartbeatMessageFactory;
+        private readonly IHeartbeatProvider _heartbeatMessageFactory;
         private ConnectionParameters? _connectionParameters;
         private Timer? _heartbeatTimer;
         private bool _disposed;
@@ -36,8 +39,9 @@ namespace MarketDataProvider
         }
 
         public event EventHandler<ConnectionState>? ConnectionStateChanged;
+        public event EventHandler<object>? ServerReply;
 
-        public WebSocketConnection(ILogger log, IHeartbeatMessageFactory heartbeatMessageFactory, IAbstractWebSocketFactory socketFactory)
+        public WebSocketConnection(ILogger log, IHeartbeatProvider heartbeatMessageFactory, IAbstractWebSocketFactory socketFactory)
         {
             _heartbeatMessageFactory = heartbeatMessageFactory 
                 ?? throw new ArgumentNullException(nameof(heartbeatMessageFactory));
@@ -67,19 +71,24 @@ namespace MarketDataProvider
 
             for (int attemptNum = 0; infinite || attemptNum <= parameters.ReconnectionAttempts; attemptNum++)
             {
-                if (attemptNum != 0)
-                {
-                    await Task.Delay(parameters.ReconnectionInterval, userCancellation);
-                }
-
-                using var timeoutCancellation = new CancellationTokenSource(parameters.ConnectionTimeout);
-                using var aggregateCancellation = CancellationTokenSource.CreateLinkedTokenSource(userCancellation, timeoutCancellation.Token);
-
                 try
                 {
+                    if (attemptNum != 0)
+                    {
+                        await Task.Delay(parameters.ReconnectionInterval, userCancellation);
+                    }
+
+                    using var timeoutCancellation = new CancellationTokenSource(parameters.ConnectionTimeout);
+                    using var aggregateCancellation = CancellationTokenSource.CreateLinkedTokenSource(userCancellation, timeoutCancellation.Token);
+
                     await _websocket.ConnectAsync(new(parameters.Uri!), aggregateCancellation.Token);
                 }
-                catch (Exception)
+                catch (TaskCanceledException e)
+                {
+                    // TODO: log exception
+                    return;
+                }
+                catch (Exception e)
                 {
                     // TODO: log exception
                     continue;
@@ -112,11 +121,43 @@ namespace MarketDataProvider
             using var timeoutCancellation = new CancellationTokenSource(_connectionParameters!.ConnectionTimeout);
             using var aggregateCancellation = CancellationTokenSource.CreateLinkedTokenSource(userCancellation, timeoutCancellation.Token);
 
-            await _websocket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, aggregateCancellation.Token);
+            try
+            {
+                await _websocket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, aggregateCancellation.Token);
+            }
+            catch (Exception)
+            {
+                //TODO: log
+            }
 
             ConnectionState = ConnectionState.Disconnected;
         }
+        public async Task SendDataAsync(object data)
+        {
+            if (_disposed || ConnectionState == ConnectionState.Connected)
+            {
+                return;
+            }
 
+            if (data is null)
+            {
+                throw new ArgumentNullException(nameof(data));
+            }
+
+            try
+            {
+                var msgBuffer = NetJsonDeserializer.SerializeToUtf8Bytes(data);
+
+                await _websocket.SendAsync(msgBuffer, 
+                    WebSocketMessageType.Text, 
+                        WebSocketMessageFlags.None, 
+                            CancellationToken.None);
+            }
+            catch (Exception e)
+            {
+                _log.LogError(e, "Failed to send the data");
+            }
+        }
         public void Dispose()
         {
             if (_disposed)
@@ -145,7 +186,7 @@ namespace MarketDataProvider
             {
                 throw new ArgumentException(string.Format(
                     "If {0}.{1} is set, {0}.{2} must be at least {3}. Setting the value too small will cause " +
-                    "the server to flood, resulting in the connection being aborted.",
+                    "the server to get flooded, resulting in the connection being aborted.",
                 /*0*/   nameof(ConnectionParameters),
                     /*1*/   nameof(ConnectionParameters.UseHeartbeating),
                         /*2*/   nameof(ConnectionParameters.HeartbeatInterval),
@@ -159,7 +200,6 @@ namespace MarketDataProvider
                     $"A minimum connection timeout of {_smallestConnectionTimeout} is allowed");
             }
         }
-
         private void BeginListening()
         {
             Task.Run(() =>
@@ -173,15 +213,23 @@ namespace MarketDataProvider
                     try
                     {
                         _websocket.ReceiveAsync(buffer, timeoutCancellation.Token).Wait();
+
+                        var json = Encoding.UTF8.GetString(buffer);
+                        var result = JsonConvert.DeserializeObject(json);
+
+                        ServerReply?.Invoke(this, result);                        
                     }
                     catch (Exception) when (timeoutCancellation.IsCancellationRequested && _websocket.State == WebSocketState.Open)
                     {
                         DisconnectAsync(CancellationToken.None);
                     }
+                    catch 
+                    {
+                        // TODO: Log
+                    }
                 }
             });
         }
-
         private void SetHeartbeatTask(TimeSpan period)
         {
             if (_connectionParameters!.UseHeartbeating is false)
@@ -202,26 +250,15 @@ namespace MarketDataProvider
             _heartbeatTimer?.Dispose();
             _heartbeatTimer = null;
         }
-        private void OnHeartbeatRequired(object? arg)
+        private void OnHeartbeatRequired(object? _)
         {
             if (ConnectionState != ConnectionState.Connected)
             {
                 return;
             }
 
-            try
-            {
-                var heartbeatObj = _heartbeatMessageFactory.GetNextMessage();
-                var msgBuffer = JsonSerializer.SerializeToUtf8Bytes(heartbeatObj);
-
-                _websocket
-                    .SendAsync(msgBuffer, WebSocketMessageType.Text, WebSocketMessageFlags.None, CancellationToken.None)
-                        .Wait();
-            }
-            catch (Exception e)
-            {
-                _log.LogError(e, "Failed to send the heartbeat");
-            }
+            var heartbeatObj = _heartbeatMessageFactory.GetNextMessage();
+            SendDataAsync(heartbeatObj);
         }
     }
 }
