@@ -35,5 +35,6 @@ namespace MarketDataProvider.Contracts
         public long? DeliveryTime { get; set; }
         public decimal? BasisRate { get; set; }
         public decimal? DeliveryFreeRate { get; set; }
+        public string? TickDirection { get; set; }
     }
 }
