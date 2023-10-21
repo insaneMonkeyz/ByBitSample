@@ -8,6 +8,8 @@ namespace MarketDataProviderTests.IConnectionTests
 {
     public class DataExchangeTests : ConnectionTest
     {
+        private IDataTransmitter _dataTransmitter;
+
         [SetUp]
         public void SetUp()
         {
@@ -20,6 +22,7 @@ namespace MarketDataProviderTests.IConnectionTests
 
             _socketMockFactory = new();
             _connection = ConnectionsFactory.CreateByBitConnection(_socketMockFactory);
+            _dataTransmitter = _connection as IDataTransmitter;
 
             SetupSeccussfulConnectAsync();
         }
@@ -46,7 +49,7 @@ namespace MarketDataProviderTests.IConnectionTests
                     });
                 });
 
-            _connection.ServerReply += (_, _) => Assert.Fail();
+            _dataTransmitter.ServerReply += (_, _) => Assert.Fail();
 
             await _connection.ConnectAsync(_connectionParams, CancellationToken.None);
 
@@ -75,7 +78,7 @@ namespace MarketDataProviderTests.IConnectionTests
                     });
                 });
 
-            _connection.ServerReply += (_, data) => Assert.That(testmsg.Equals(data));
+            _dataTransmitter.ServerReply += (_, data) => Assert.That(data.Equals(testmsg));
 
             await _connection.ConnectAsync(_connectionParams, CancellationToken.None);
             await Task.Delay(100);

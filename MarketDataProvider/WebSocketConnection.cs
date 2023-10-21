@@ -9,7 +9,7 @@ using NetJsonDeserializer = System.Text.Json.JsonSerializer;
 
 namespace MarketDataProvider
 {
-    internal class WebSocketConnection : IConnection
+    internal class WebSocketConnection : IConnection, IDataTransmitter
     {
         private static readonly TimeSpan _smallestHeartbeatRepeatFrequency = TimeSpan.FromMilliseconds(100);
         private static readonly TimeSpan _smallestConnectionTimeout = TimeSpan.FromMilliseconds(100);
