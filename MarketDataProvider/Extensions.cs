@@ -1,6 +1,8 @@
 ﻿using MarketDataProvider.BybitApi;
 using MarketDataProvider.BybitApi.DTO.Rest.Market;
 using MarketDataProvider.BybitApi.DTO.Rest;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Schema;
 
 namespace MarketDataProvider
 {
@@ -84,6 +86,18 @@ namespace MarketDataProvider
                     Ticker = d.Ticker!
                 })
                 .ToArray();
+        }
+
+        public static bool Is<T>(this JObject jobj, JSchema schema, out T deserialized)
+        {
+            if (jobj.IsValid(schema))
+            {
+                deserialized = jobj.ToObject<T>();
+                return deserialized != null;
+            }
+
+            deserialized = default;
+            return false;
         }
     }
 }

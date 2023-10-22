@@ -1,24 +1,24 @@
 ﻿using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace MarketDataProvider.BybitApi.DTO.Stream
 {
     [Serializable]
     public class RequestResponseMessage
     {
-        [JsonPropertyName("req_id")]
+        [JsonProperty("req_id")]
         public string? Id { get; set; }
 
-        [JsonPropertyName("op")]
+        [JsonProperty("op")]
         public string? Operation { get; set; }
 
-        [JsonPropertyName("conn_id")]
+        [JsonProperty("conn_id")]
         public string? ConnectionId { get; set; }
 
-        [JsonPropertyName("ret_msg")]
+        [JsonProperty("ret_msg")]
         public string? Message { get; set; }
 
+        [JsonProperty("success")]
         public bool? Success { get; set; }
-
-        public object[]? Args { get; set; }
     }
 }
