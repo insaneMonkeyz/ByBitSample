@@ -6,7 +6,7 @@ namespace MarketDataProvider.Contracts.Bybit.Stream
     public class RequestResponseMessage
     {
         [JsonPropertyName("req_id")]
-        public int? Id { get; set; }
+        public string? Id { get; set; }
 
         [JsonPropertyName("op")]
         public string? Operation { get; set; }
