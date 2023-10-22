@@ -1,4 +1,4 @@
-﻿namespace MarketDataProvider.Bybit.Rest
+﻿namespace MarketDataProvider.BybitApi
 {
     internal enum Categories
     {

@@ -1,4 +1,6 @@
-﻿namespace MarketDataProvider.Bybit.Rest
+﻿using MarketDataProvider.BybitApi;
+
+namespace MarketDataProvider.Bybit.Rest
 {
 
     internal class RestRequestFactory

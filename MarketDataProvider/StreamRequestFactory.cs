@@ -1,4 +1,5 @@
-﻿using MarketDataProvider.Contracts.Bybit.Stream;
+﻿using MarketDataProvider.BybitApi;
+using MarketDataProvider.BybitApi.DTO.Stream;
 
 namespace MarketDataProvider.Bybit.Rest
 {

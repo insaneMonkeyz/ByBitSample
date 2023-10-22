@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace MarketDataProvider.Contracts.Bybit.Rest.Market
+namespace MarketDataProvider.BybitApi.DTO.Rest.Market
 {
     [Serializable]
     public class OptionSecurityDescription : SecurityDescription

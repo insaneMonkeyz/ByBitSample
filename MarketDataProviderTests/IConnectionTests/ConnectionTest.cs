@@ -2,7 +2,7 @@
 using System.Linq.Expressions;
 using System.Net.WebSockets;
 using MarketDataProvider;
-using MarketDataProvider.Contracts.Bybit.Stream;
+using MarketDataProvider.BybitApi.DTO.Stream;
 using MarketDataProvider.WebSocket;
 using Moq;
 

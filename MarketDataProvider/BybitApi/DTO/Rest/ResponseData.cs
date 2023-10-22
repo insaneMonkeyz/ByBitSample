@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace MarketDataProvider.Contracts.Bybit.Rest
+namespace MarketDataProvider.BybitApi.DTO.Rest
 {
     [Serializable]
     public class ResponseData<T>

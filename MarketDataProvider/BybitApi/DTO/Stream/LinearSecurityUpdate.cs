@@ -1,7 +1,6 @@
-﻿using MarketDataProvider.Contracts.Bybit.Stream;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 
-namespace MarketDataProvider.Contracts
+namespace MarketDataProvider.BybitApi.DTO.Stream
 {
     [Serializable]
     public class LinearSecurityUpdate : SecurityUpdate

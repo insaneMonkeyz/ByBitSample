@@ -1,13 +1,12 @@
 ﻿using System.Net.WebSockets;
 using System.Text;
 using MarketDataProvider.Exceptions;
-using MarketDataProvider.WebSocket;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 using NetJsonDeserializer = System.Text.Json.JsonSerializer;
 
-namespace MarketDataProvider
+namespace MarketDataProvider.WebSocket
 {
     internal class WebSocketConnection : IConnection, IDataTransmitter
     {
@@ -43,7 +42,7 @@ namespace MarketDataProvider
 
         public WebSocketConnection(ILogger log, IHeartbeatProvider heartbeatMessageFactory, IAbstractWebSocketFactory socketFactory)
         {
-            _heartbeatMessageFactory = heartbeatMessageFactory 
+            _heartbeatMessageFactory = heartbeatMessageFactory
                 ?? throw new ArgumentNullException(nameof(heartbeatMessageFactory));
 
             _log = log;// ?? throw new ArgumentNullException(nameof(log));
@@ -148,9 +147,9 @@ namespace MarketDataProvider
             {
                 var msgBuffer = NetJsonDeserializer.SerializeToUtf8Bytes(data);
 
-                await _websocket.SendAsync(msgBuffer, 
-                    WebSocketMessageType.Text, 
-                        WebSocketMessageFlags.EndOfMessage, 
+                await _websocket.SendAsync(msgBuffer,
+                    WebSocketMessageType.Text,
+                        WebSocketMessageFlags.EndOfMessage,
                             CancellationToken.None);
             }
             catch (Exception e)
@@ -190,7 +189,7 @@ namespace MarketDataProvider
                 /*0*/   nameof(ConnectionParameters),
                     /*1*/   nameof(ConnectionParameters.UseHeartbeating),
                         /*2*/   nameof(ConnectionParameters.HeartbeatInterval),
-                            /*3*/   _smallestHeartbeatRepeatFrequency)); 
+                            /*3*/   _smallestHeartbeatRepeatFrequency));
             }
 
             if (parameters.ConnectionTimeout < _smallestConnectionTimeout &&
@@ -217,13 +216,13 @@ namespace MarketDataProvider
                         var json = Encoding.UTF8.GetString(buffer);
                         var result = JsonConvert.DeserializeObject(json);
 
-                        ServerReply?.Invoke(this, result);                        
+                        ServerReply?.Invoke(this, result);
                     }
                     catch (Exception e) when (TaskWasCancelled(e, timeoutCancellation))
                     {
                         DisconnectAsync(CancellationToken.None);
                     }
-                    catch 
+                    catch
                     {
                         // TODO: Log
                     }

@@ -1,6 +1,6 @@
-﻿using MarketDataProvider.Bybit.Rest;
-using MarketDataProvider.Contracts.Bybit.Rest.Market;
-using MarketDataProvider.Contracts.Bybit.Rest;
+﻿using MarketDataProvider.BybitApi;
+using MarketDataProvider.BybitApi.DTO.Rest.Market;
+using MarketDataProvider.BybitApi.DTO.Rest;
 
 namespace MarketDataProvider
 {

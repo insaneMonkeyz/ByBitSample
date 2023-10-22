@@ -1,7 +1,7 @@
-﻿namespace MarketDataProvider.Bybit.Rest
+﻿namespace MarketDataProvider.BybitApi
 {
     internal static class StreamTopics
     {
         public const string Tickers = "tickers";
-    } 
+    }
 }

@@ -1,9 +1,10 @@
 ﻿using MarketDataProvider.Bybit.Rest;
-using MarketDataProvider.Contracts.Bybit.Rest.Market;
-using MarketDataProvider.Contracts.Bybit.Rest;
 using Newtonsoft.Json;
 using MarketDataProvider.Contracts.Bybit.Stream;
 using System.Diagnostics;
+using MarketDataProvider.BybitApi;
+using MarketDataProvider.BybitApi.DTO.Rest.Market;
+using MarketDataProvider.BybitApi.DTO.Rest;
 
 namespace MarketDataProvider
 {
