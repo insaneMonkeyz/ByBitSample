@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 using MarketDataProvider;
-using MarketDataProvider.Contracts.ByBit;
+using MarketDataProvider.Contracts.Bybit;
 using Moq;
 
 namespace MarketDataProviderTests.IConnectionTests

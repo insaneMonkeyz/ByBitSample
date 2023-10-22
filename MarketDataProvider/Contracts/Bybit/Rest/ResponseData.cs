@@ -8,6 +8,6 @@ namespace MarketDataProvider.Contracts.Bybit.Rest
         public string? Category { get; set; }
 
         [JsonProperty("list")]
-        public T[]? Data { get; set; }
+        public T[]? Entities { get; set; }
     }
 }

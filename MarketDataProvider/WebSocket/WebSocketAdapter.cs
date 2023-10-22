@@ -27,7 +27,15 @@ namespace MarketDataProvider.WebSocket
         }
 
         public async Task ReceiveAsync(Memory<byte> buffer, CancellationToken cancellationToken)
-            => await _socket.ReceiveAsync(buffer, cancellationToken).AsTask();
+        {
+            // The websocket does not automatically clear the buffer before writing to it
+            // Each new message overlaps the previous message.
+            // And when the new message is shorter than the previous one,
+            // the remains of the previous will be present in the result
+            buffer.Span.Clear();
+
+            await _socket.ReceiveAsync(buffer, cancellationToken).AsTask();
+        }
 
         public void Abort() => _socket.Abort();
 

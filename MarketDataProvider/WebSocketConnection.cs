@@ -134,7 +134,7 @@ namespace MarketDataProvider
         }
         public async Task SendDataAsync(object data)
         {
-            if (_disposed || ConnectionState == ConnectionState.Connected)
+            if (_disposed || ConnectionState != ConnectionState.Connected)
             {
                 return;
             }
@@ -150,7 +150,7 @@ namespace MarketDataProvider
 
                 await _websocket.SendAsync(msgBuffer, 
                     WebSocketMessageType.Text, 
-                        WebSocketMessageFlags.None, 
+                        WebSocketMessageFlags.EndOfMessage, 
                             CancellationToken.None);
             }
             catch (Exception e)
@@ -219,7 +219,7 @@ namespace MarketDataProvider
 
                         ServerReply?.Invoke(this, result);                        
                     }
-                    catch (Exception) when (timeoutCancellation.IsCancellationRequested && _websocket.State == WebSocketState.Open)
+                    catch (Exception e) when (TaskWasCancelled(e, timeoutCancellation))
                     {
                         DisconnectAsync(CancellationToken.None);
                     }
@@ -229,6 +229,13 @@ namespace MarketDataProvider
                     }
                 }
             });
+        }
+        private bool TaskWasCancelled(Exception e, CancellationTokenSource cancellation)
+        {
+            return (e is TaskCanceledException ||
+                    e is AggregateException ae && ae.InnerException is TaskCanceledException)
+                    && cancellation.IsCancellationRequested
+                    && _websocket.State == WebSocketState.Open;
         }
         private void SetHeartbeatTask(TimeSpan period)
         {
