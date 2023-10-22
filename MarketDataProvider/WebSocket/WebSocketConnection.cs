@@ -2,13 +2,12 @@
 using System.Text;
 using MarketDataProvider.Exceptions;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-
+using Newtonsoft.Json.Linq;
 using NetJsonDeserializer = System.Text.Json.JsonSerializer;
 
 namespace MarketDataProvider.WebSocket
 {
-    internal class WebSocketConnection : IConnection, IDataTransmitter
+    internal class WebSocketConnection : IConnectableDataTransmitter
     {
         private static readonly TimeSpan _smallestHeartbeatRepeatFrequency = TimeSpan.FromMilliseconds(100);
         private static readonly TimeSpan _smallestConnectionTimeout = TimeSpan.FromMilliseconds(100);
@@ -147,6 +146,8 @@ namespace MarketDataProvider.WebSocket
             {
                 var msgBuffer = NetJsonDeserializer.SerializeToUtf8Bytes(data);
 
+                Console.WriteLine(Encoding.UTF8.GetString(msgBuffer));
+
                 await _websocket.SendAsync(msgBuffer,
                     WebSocketMessageType.Text,
                         WebSocketMessageFlags.EndOfMessage,
@@ -214,9 +215,15 @@ namespace MarketDataProvider.WebSocket
                         _websocket.ReceiveAsync(buffer, timeoutCancellation.Token).Wait();
 
                         var json = Encoding.UTF8.GetString(buffer);
-                        var result = JsonConvert.DeserializeObject(json);
 
-                        ServerReply?.Invoke(this, result);
+                        Console.WriteLine(json);
+
+                        var message = JObject.Parse(json);
+
+                        if (!_heartbeatMessageFactory.IsHeartbeatReply(message))
+                        {
+                            ServerReply?.Invoke(this, message); 
+                        }
                     }
                     catch (Exception e) when (TaskWasCancelled(e, timeoutCancellation))
                     {

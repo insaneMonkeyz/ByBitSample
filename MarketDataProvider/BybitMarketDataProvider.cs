@@ -1,10 +1,9 @@
 ﻿using MarketDataProvider.Bybit.Rest;
-using Newtonsoft.Json;
-using MarketDataProvider.Contracts.Bybit.Stream;
-using System.Diagnostics;
 using MarketDataProvider.BybitApi;
-using MarketDataProvider.BybitApi.DTO.Rest.Market;
 using MarketDataProvider.BybitApi.DTO.Rest;
+using MarketDataProvider.BybitApi.DTO.Rest.Market;
+using MarketDataProvider.BybitApi.DTO.Stream;
+using Newtonsoft.Json;
 
 namespace MarketDataProvider
 {
@@ -31,15 +30,31 @@ namespace MarketDataProvider
 
             _securitiesCache[category].Update(securities);
 
-            return securities;
+            return filter.TickerTemplate != null
+                ? securities.Where(s => s.Ticker.Contains(filter.TickerTemplate, StringComparison.CurrentCultureIgnoreCase))
+                : securities;
         }
         public async Task SubscribeTradesAsync(ISecurity security)
         {
-            throw new NotImplementedException();
+            if (ConnectionState != ConnectionState.Connected)
+            {
+                throw new InvalidOperationException("Provider is not connected");
+            }
+
+            var subscribeRequest = _streamRequestFactory.CreateSubscribeMessage(security.Ticker);
+
+            await AwaitServerReply(subscribeRequest);
         }
         public async Task UnsubscribeTradesAsync(ISecurity security)
         {
-            throw new NotImplementedException();
+            if (ConnectionState != ConnectionState.Connected)
+            {
+                throw new InvalidOperationException("Provider is not connected");
+            }
+
+            var subscribeRequest = _streamRequestFactory.CreateUnsubscribeMessage(security.Ticker);
+
+            await AwaitServerReply(subscribeRequest);
         }
         public async Task ConnectAsync(ConnectionParameters parameters, CancellationToken cancellationToken)
         {
@@ -62,13 +77,35 @@ namespace MarketDataProvider
             _connection.Dispose();
         }
 
-        public BybitMarketDataProvider(IConnection connection)
+        public BybitMarketDataProvider(IConnectableDataTransmitter connection)
         {
-            _connection = connection;
+            _connection = connection as IConnection;
             _dataTransmitter = connection as IDataTransmitter;
+            _msgRouter = new(_dataTransmitter);
             _connection.ConnectionStateChanged += (_, state) => ConnectionStateChanged?.Invoke(this, state);
         }
 
+        private async Task AwaitServerReply(RequestMessage message)
+        {
+            var serverReply = new TaskCompletionSource();
+            using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+            cancellation.Token.Register(serverReply.SetCanceled);
+
+            void onServerReply(RequestResponseMessage response)
+            {
+                if (message.Id!.Equals(response.Id))
+                {
+                    _msgRouter.OnRequestResponseMessage -= onServerReply;
+                    serverReply.SetResult();
+                }
+            }
+
+            _msgRouter.OnRequestResponseMessage += onServerReply;
+
+            await _dataTransmitter.SendDataAsync(message);
+            await serverReply.Task;
+        }
         private static void Validate(ISecurityFilter filter)
         {
             if (filter is null)
@@ -107,9 +144,11 @@ namespace MarketDataProvider
 
         private readonly IConnection _connection;
         private readonly IDataTransmitter _dataTransmitter;
-        private readonly Dictionary<Categories, Cache<ISecurity>> _securitiesCache = new(4);
+        private readonly BybitMessageRouter _msgRouter;
         private readonly IList<ISecurity> _tradeSubscriptions = new List<ISecurity>(10);
         private readonly RestRequestFactory _restRequestFactory = new();
+        private readonly StreamRequestFactory _streamRequestFactory = new();
+        private readonly Dictionary<Categories, Cache<ISecurity>> _securitiesCache = new(4);
         private readonly HttpClient _restClient = new();
         private bool _disposed;
     }

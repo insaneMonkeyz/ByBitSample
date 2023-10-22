@@ -1,20 +1,18 @@
-﻿using MarketDataProvider.Contracts.Bybit;
-using MarketDataProvider.WebSocket;
-using Microsoft.Extensions.Logging;
+﻿using MarketDataProvider.WebSocket;
 
 namespace MarketDataProvider
 {
     public class ConnectionsFactory
     {
-        public static IConnection CreateByBitConnection()
+        public static IConnectableDataTransmitter CreateByBitConnection()
         {
-            return new WebSocketConnection(null, new HeartbeatProvider(), new WebSocketClientFactory());
+            return new WebSocketConnection(null, new HeartbeatProvider(new()), new WebSocketClientFactory());
         }
-        public static IConnection CreateByBitConnection(IAbstractWebSocketFactory socketFactory)
+        public static IConnectableDataTransmitter CreateByBitConnection(IAbstractWebSocketFactory socketFactory)
         {
-            return new WebSocketConnection(null, new HeartbeatProvider(), socketFactory);
+            return new WebSocketConnection(null, new HeartbeatProvider(new()), socketFactory);
         }
-        public static IConnection CreateByBitConnection(IAbstractWebSocketFactory socketFactory, IHeartbeatProvider heartbeatFactory)
+        public static IConnectableDataTransmitter CreateByBitConnection(IAbstractWebSocketFactory socketFactory, IHeartbeatProvider heartbeatFactory)
         {
             return new WebSocketConnection(null, heartbeatFactory, socketFactory);
         }

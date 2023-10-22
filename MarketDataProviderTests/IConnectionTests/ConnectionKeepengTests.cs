@@ -1,10 +1,7 @@
-﻿using System.Linq.Expressions;
-using System.Net.WebSockets;
+﻿using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using MarketDataProvider;
-using MarketDataProvider.Contracts.Bybit;
-using MarketDataProvider.WebSocket;
 using Moq;
 
 namespace MarketDataProviderTests.IConnectionTests

@@ -1,7 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
 using MarketDataProvider;
-using MarketDataProvider.Contracts.Bybit;
 using Moq;
 
 namespace MarketDataProviderTests.IConnectionTests
@@ -37,13 +36,14 @@ namespace MarketDataProviderTests.IConnectionTests
                 {
                     await Task.Run(() =>
                     {
-                        var reply = new Heartbeat()
+                        var reply = $$"""
                         {
-                            Id = 146,
-                            Operation = Heartbeat.ReplyMessage
-                        };
-                        var serialized = JsonSerializer.Serialize(reply);
-                        buffer = Encoding.UTF8.GetBytes(serialized);
+                            "req_id": 88005553535,
+                            "op": "ping"
+                        }
+                        """;
+
+                        buffer = Encoding.UTF8.GetBytes(reply);
 
                         SetupReceiveAsyncFreeze(Timeout.InfiniteTimeSpan);
                     });
