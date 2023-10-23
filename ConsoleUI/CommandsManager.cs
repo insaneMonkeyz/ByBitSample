@@ -1,9 +1,14 @@
 ﻿internal static class CommandsManager
 {
-    public static event Action SubscribeCommandRequested;
-    public static event Action UnsubscribeCommandRequested;
-    public static event Action ConnectCommandRequested;
-    public static event Action DisconnectCommandRequested;
+    public static event Action? SubscribeCommandRequested;
+    public static event Action? UnsubscribeCommandRequested;
+
+    public static event Action? ConnectCommandRequested;
+    public static event Action? DisconnectCommandRequested;
+
+    public static event Action? ShowTradesCommandRequested;
+    public static event Action? ShowLogCommandRequested;
+    public static event Action? ShowSecuritiesCommandRequested;
 
     public static async Task ListenUserCommands()
     {
@@ -17,22 +22,37 @@
                     {
                         case ConsoleKey.S:
                             {
-                                SubscribeCommandRequested();
+                                SubscribeCommandRequested?.Invoke();
                                 break;
                             }
                         case ConsoleKey.U:
                             {
-                                UnsubscribeCommandRequested();
+                                UnsubscribeCommandRequested?.Invoke();
                                 break;
                             }
                         case ConsoleKey.C:
                             {
-                                ConnectCommandRequested();
+                                ConnectCommandRequested?.Invoke();
                                 break;
                             }
                         case ConsoleKey.D:
                             {
-                                DisconnectCommandRequested();
+                                DisconnectCommandRequested?.Invoke();
+                                break;
+                            }
+                        case ConsoleKey.T:
+                            {
+                                ShowTradesCommandRequested?.Invoke();
+                                break;
+                            }
+                        case ConsoleKey.L:
+                            {
+                                ShowLogCommandRequested?.Invoke();
+                                break;
+                            }
+                        case ConsoleKey.E:
+                            {
+                                ShowSecuritiesCommandRequested?.Invoke();
                                 break;
                             }
                     }

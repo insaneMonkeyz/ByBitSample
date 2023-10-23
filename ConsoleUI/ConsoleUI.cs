@@ -1,4 +1,6 @@
-﻿namespace ConsoleUI
+﻿using System.Text;
+
+namespace ConsoleUI
 {
     internal static class ConsoleUI
     {
@@ -12,36 +14,12 @@
 
         private static string CommandsDescriptionMessage
         {
-            get => string.Format(Template, CommandsDescriptionContent);
+            get => string.Format(Template, _viewmodel.CommandsDescriptionContent);
         }
-
-        private const string CommandsDescriptionContent =
-            $$"""
-                    Press Ctrl+C to connect to the server
-                    Press Ctrl+D to disconnect from the server
-
-                    Press Ctrl+S to subscribe to trades
-                    Press Ctrl+U to unsubscribe from trades
-
-                    Press Ctrl+A to output available securities
-                    Press Ctrl+T to output subscribed trades
-                    Press Ctrl+L to output log
-            """;
-
         private static string SubscriptionsMessage 
         { 
-            get => string.Format(Template, $"\t{SubscriptionsContent}"); 
+            get => string.Format(Template, $"\t{_viewmodel.SubscriptionsContent}"); 
         }
-        private static string SubscriptionsContent
-        {
-            get
-            {
-                return _subscriptions.Count > 0
-                    ? string.Join(Environment.NewLine + "\t", _subscriptions)
-                    : "No subscriptions yet";
-            }
-        }
-
         private static string PromptTemplate
         {
             get => string.Format(Template,"\t");
@@ -67,11 +45,24 @@
 
         public static void Initialize(ConsoleViewmodel vm)
         {
+            if (_initialized)
+            {
+                return;
+            }
+
+            _initialized = true;
             _viewmodel = vm;
+
+            vm.ConnectionChanged += state => Console.Title = state;
+            vm.NewNotification += PlotMessage;
+            vm.NewContent += AppendContent;
+            vm.ContentKindChanged += Redraw;
+
+            Redraw();
             SetConsoleSizeWatcher();
-            PlotCommandsDescription();
-            PlotSubscriptions();
         }
+
+
         public static string? PromptUser(string question)
         {
             return PlotUserPrompt(question);
@@ -84,7 +75,7 @@
             {
                 Console.SetCursorPosition(0, 0);
                 Console.Write(CommandsDescriptionMessage);
-                Console.SetCursorPosition(0, SubscribtionsTemplatePosition); 
+                SetCursorToLastPosition();
             }
         }
         private static void PlotSubscriptions()
@@ -95,18 +86,77 @@
             {
                 Console.SetCursorPosition(0, SubscribtionsTemplatePosition);
                 Console.Write(SubscriptionsMessage);
-                Console.SetCursorPosition(0, OutputPosition);
+                SetCursorToLastPosition();
+            }
+        }
+        private static void PlotContent()
+        {
+            if (!_viewmodel.Content.Any())
+            {
+                return;
+            }
+
+            var sb = new StringBuilder(65_536);
+
+            sb.AppendJoin("\n", _viewmodel.Content);
+
+            _contentLength = _viewmodel.Content.TryGetNonEnumeratedCount(out int count)
+                ? count
+                : _viewmodel.Content.Count();
+
+            lock (_outputSync)
+            {
+                Console.SetCursorPosition(0, OutputPosition + 1);
+                Console.WriteLine(sb.ToString());
             }
         }
         private static string? PlotUserPrompt(string message)
         {
             lock (_outputSync)
             {
+                PlotMessage(message);
+                var input = Console.ReadLine();
+                SetCursorToLastPosition();
+                return input;
+            }
+        }
+        private static void PlotMessage(string message)
+        {
+            lock (_outputSync)
+            {
                 Console.SetCursorPosition(0, PromptTemplatePosition);
                 Console.Write(PromptTemplate);
+
+                Console.SetCursorPosition(0, PromptPosition);
+                Console.Write(_emptyLine);
+
                 Console.SetCursorPosition(0, PromptPosition);
                 Console.Write($"\t{message}");
-                return Console.ReadLine();
+
+                SetCursorToLastPosition();
+            }
+        }
+        private static void AppendContent(string message)
+        {
+            lock (_outputSync)
+            {
+                Console.SetCursorPosition(0, OutputPosition + _contentLength++);
+                Console.WriteLine(message);
+            }
+        }
+        private static void Redraw()
+        {
+            Console.Clear();
+            PlotCommandsDescription();
+            PlotSubscriptions();
+            PlotMessage(string.Empty);
+            PlotContent();
+        }
+        private static void SetCursorToLastPosition()
+        {
+            lock( _outputSync)
+            {
+                Console.SetCursorPosition(0, OutputPosition + _contentLength + 1);
             }
         }
 
@@ -119,20 +169,25 @@
             {
                 while (true)
                 {
-                    if (Console.WindowHeight > MinHeight || Console.WindowWidth > MinWidth)
+                    if (Console.WindowHeight < MinHeight || Console.WindowWidth < MinWidth)
                     {
                         Console.SetWindowSize(MinWidth, MinHeight);
+                    }
+                    if (Console.WindowWidth != _lastConsoleWidth)
+                    {
+                        _lastConsoleWidth = Console.WindowWidth;
+                        _emptyLine = new(' ', _lastConsoleWidth);
                     }
                     Thread.Sleep(30);
                 }
             });
         }
 
+        private static int _lastConsoleWidth = 0;
+        private static string? _emptyLine;
+        private static int _contentLength;
+        private static bool _initialized;
         private static ConsoleViewmodel _viewmodel;
         private static readonly object _outputSync = new();
-        private static readonly List<string> _subscriptions = new();
-        private static readonly List<string> _available = new(1000);
-        private static readonly Queue<string> _logQueue = new(10000);
-        private static readonly Queue<string> _tradesQueue = new(10000);
     }
 }
