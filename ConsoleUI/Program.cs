@@ -1,83 +1,50 @@
 ﻿using System.Xml.Serialization;
 using MarketDataProvider;
-using Microsoft.Extensions.Logging;
+using MarketDataProvider.Bybit.Rest;
 
-internal class Program
+namespace ConsoleUI;
+
+internal partial class Program
 {
-    private const string ConnectionConfigurationFile = "ConnectionConfiguration.xml";
-    private static IConnection _bybit;
-
     private static async Task Main(string[] args)
     {
-        Initialize();
-
-        Console.WriteLine($"requesting connection to the exchange");
-
-        var configuration = await GetOrCreateConnectionParametersAsync();
-
-        await _bybit.ConnectAsync(configuration, CancellationToken.None);
-
-        for (int i = 0; i < 12 && _bybit.ConnectionState != ConnectionState.Disconnected; i++)
-        {
-            await Task.Delay(TimeSpan.FromSeconds(10));
-        }
-
-        await _bybit.DisconnectAsync(CancellationToken.None);
+        BuildApp();
+        ConsoleUI.Initialize(new());
+        ConsoleUI.PromptUser("Input something for test please: ");
+        return;
     }
 
-    private static ConnectionParameters CreateDefaultParameters()
+    private static async Task Test()
     {
-        return new()
+        var connection = ConnectionsFactory.CreateByBitConnection();
+        var provider = new BybitMarketDataProvider(connection);
+
+        var connectionParameters = new ConnectionParameters()
         {
-            Uri = "wss://stream.bybit.com/v5/public/spot",
-            ReconnectionAttempts = 3,
-            ConnectionTimeout = TimeSpan.FromSeconds(10),
-            HeartbeatInterval = TimeSpan.FromSeconds(20),
-            ReconnectionInterval = TimeSpan.FromSeconds(30),
-            UseHeartbeating = true,
+            ConnectionTimeout = TimeSpan.FromSeconds(30),
+            StreamHost = "wss://stream.bybit.com/v5/public/spot",
         };
-    }
-    private static async Task<ConnectionParameters> GetOrCreateConnectionParametersAsync()
-    {
-        var parameters = await LoadConnectionParametersAsync();
 
-        if (parameters is null)
-        {
-            parameters = CreateDefaultParameters();
-            await SaveConnectionParametersAsync(parameters);
-        }
+        await provider.ConnectAsync(connectionParameters, CancellationToken.None);
 
-        return parameters;
-    }
-    private static async Task SaveConnectionParametersAsync(ConnectionParameters parameters)
-    {
-        await Task.Run(() =>
+        var filter = new Filter()
         {
-            var serializer = new XmlSerializer(typeof(ConnectionParameters));
-            var fileStream = new FileStream(ConnectionConfigurationFile, FileMode.Create, FileAccess.Write);
-            using var writer = new StreamWriter(fileStream);
+            Kind = SecurityKind.Spot,
+            TickerTemplate = "BTCUSDT"
+        };
 
-            serializer.Serialize(writer, parameters);
-        });
-    }
-    private static async Task<ConnectionParameters?> LoadConnectionParametersAsync()
-    {
-        if (!File.Exists(ConnectionConfigurationFile))
-        {
-            return null;
-        }
+        var securities = await provider.GetAvailablSecuritiesAsync(filter);
 
-        return await Task.Run(() =>
-        {
-            using var fileStream = new FileStream(ConnectionConfigurationFile, FileMode.Open, FileAccess.Read);
-            var serializer = new XmlSerializer(typeof(ConnectionParameters));
-            return serializer.Deserialize(fileStream) as ConnectionParameters;
-        });
+        var btc = securities.First();
+
+        provider.NewTrades += (_, t) => Console.WriteLine($"{t.Timestamp} {t.Security.Ticker} {t.Side} {t.Price} {t.Size}");
+
+        await provider.SubscribeTradesAsync(btc);
+
+        await Task.Delay(TimeSpan.FromSeconds(30));
     }
 
-    private static void Initialize()
+    private static void BuildApp()
     {
-        _bybit = ConnectionsFactory.CreateByBitConnection();
-        _bybit.ConnectionStateChanged += (sender, state) => Console.WriteLine($"State changed: {state}");
     }
 }
