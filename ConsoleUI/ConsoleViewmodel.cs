@@ -33,7 +33,6 @@ internal class ConsoleViewmodel
                 : "No subscriptions yet";
         }
     }
-
     public IEnumerable<string> Content 
     { 
         get => content; 
@@ -43,7 +42,6 @@ internal class ConsoleViewmodel
             ContentKindChanged?.Invoke();
         }
     }
-
     public string ConnectionState
     {
         get
@@ -158,14 +156,16 @@ internal class ConsoleViewmodel
         }
         catch (AggregateException ae) when (ae.InnerException is InvalidConfigurationException e)
         {
+            ConfigurationManager.DeleteConfiguration();
+
             NewNotification?.Invoke($"Configuration parameter {e.Message} was invalid. Gonna try with default one");
             var newparams = ConfigurationManager.CreateDefaultParameters();
-            ConfigurationManager.SaveConnectionParametersAsync(newparams);
 
             try
             {
                 _connection.ConnectAsync(newparams, CancellationToken.None).Wait();
                 NewNotification?.Invoke("Successfully connected with new configuration");
+                ConfigurationManager.SaveConnectionParametersAsync(newparams);
             }
             catch
             {

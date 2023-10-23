@@ -55,4 +55,12 @@ internal static class ConfigurationManager
             serializer.Serialize(writer, parameters);
         });
     }
+    public static void DeleteConfiguration()
+    {
+        if (File.Exists(ConnectionConfigurationFile))
+        {
+            File.SetAttributes(ConnectionConfigurationFile, FileAttributes.Normal);
+            File.Delete(ConnectionConfigurationFile);
+        }
+    }
 }
