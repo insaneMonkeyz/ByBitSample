@@ -22,37 +22,37 @@
                     {
                         case ConsoleKey.S:
                             {
-                                SubscribeCommandRequested?.Invoke();
+                                SafeInvoke(SubscribeCommandRequested);
                                 break;
                             }
                         case ConsoleKey.U:
                             {
-                                UnsubscribeCommandRequested?.Invoke();
+                                SafeInvoke(UnsubscribeCommandRequested);
                                 break;
                             }
                         case ConsoleKey.C:
                             {
-                                ConnectCommandRequested?.Invoke();
+                                SafeInvoke(ConnectCommandRequested);
                                 break;
                             }
                         case ConsoleKey.D:
                             {
-                                DisconnectCommandRequested?.Invoke();
+                                SafeInvoke(DisconnectCommandRequested);
                                 break;
                             }
                         case ConsoleKey.T:
                             {
-                                ShowTradesCommandRequested?.Invoke();
+                                SafeInvoke(ShowTradesCommandRequested);
                                 break;
                             }
                         case ConsoleKey.L:
                             {
-                                ShowLogCommandRequested?.Invoke();
+                                SafeInvoke(ShowLogCommandRequested);
                                 break;
                             }
                         case ConsoleKey.E:
                             {
-                                ShowSecuritiesCommandRequested?.Invoke();
+                                SafeInvoke(ShowSecuritiesCommandRequested);
                                 break;
                             }
                     }
@@ -61,6 +61,14 @@
                 await Task.Delay(50);
             }
         });
+    }
+    private static void SafeInvoke(Action? action)
+    {
+        try
+        {
+            action?.Invoke();
+        }
+        catch { }
     }
     private static bool IsCtrlCombinationPressed(out ConsoleKey key)
     {

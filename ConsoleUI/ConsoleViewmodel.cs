@@ -7,7 +7,7 @@ internal class ConsoleViewmodel
     public event Action<string>? NewNotification;
     public event Action<string>? ConnectionChanged;
 
-    public event Action<Func<string>>? UserPromptRequested;
+    public event Action<string, Action<string>>? UserPromptRequested;
     public event Action<string>? NewContent;
     public event Action? ContentKindChanged;
 
@@ -33,7 +33,26 @@ internal class ConsoleViewmodel
         }
     }
 
-    public IEnumerable<string> Content { get; private set; } = Enumerable.Empty<string>();
+    public IEnumerable<string> Content 
+    { 
+        get => content; 
+        private set
+        {
+            content = value;
+            ContentKindChanged?.Invoke();
+        }
+    }
+
+    public string ConnectionState
+    {
+        get
+        {
+            var state = _connection?.ConnectionState 
+                ?? MarketDataProvider.ConnectionState.Disconnected;
+
+            return state.ToString();
+        }
+    }
 
     public ConsoleViewmodel()
     {
@@ -41,56 +60,84 @@ internal class ConsoleViewmodel
         CommandsManager.DisconnectCommandRequested += OnDisconnectCommandRequested;
         CommandsManager.ConnectCommandRequested += OnConnectCommandRequested;
 
+        CommandsManager.SubscribeCommandRequested += OnSubscribeCommandRequested;
+        CommandsManager.UnsubscribeCommandRequested += OnUnsubscribeCommandRequested;
+
         CommandsManager.ShowLogCommandRequested += OnShowLogCommandRequested;
         CommandsManager.ShowTradesCommandRequested += OnShowTradesCommandRequested;
         CommandsManager.ShowSecuritiesCommandRequested += OnShowSecuritiesCommandRequested;
 
+        _connection = ConnectionsFactory.CreateByBitConnection();
+        _marketDataProvider = new BybitMarketDataProvider(_connection as IConnectableDataTransmitter);
         //_connection.ConnectionStateChanged += (_, state) => ConnectionChanged?.Invoke(state.ToString());
+    }
+
+    private void OnUnsubscribeCommandRequested()
+    {
+        throw new NotImplementedException();
+    }
+
+    private void OnSubscribeCommandRequested()
+    {
+        if (_connection.ConnectionState != MarketDataProvider.ConnectionState.Connected)
+        {
+            NewNotification?.Invoke("Cannot request subscription when disconnected");
+            return;
+        }
+
+        void processUserInpt(string input)
+        {
+        }
+        var message = "Please provide security ticker to subscribe: ";
+        UserPromptRequested?.Invoke(message, processUserInpt);
     }
 
     private void OnShowSecuritiesCommandRequested()
     {
-        Content = new[]
+        if (_availableSecurities.Count == 0)
         {
-            "BTCUSDT",
-            "ETHUSDT",
-            "MNRUSDT",
-        };
-        ContentKindChanged?.Invoke();
+            var filter = new SecurityFilter
+            {
+                EntityType = TradingEntityType.Cryptocurrency,
+                Kind = SecurityKind.Spot,
+            };
+
+            try
+            {
+                var task = _marketDataProvider.GetAvailablSecuritiesAsync(filter);
+
+                NewNotification?.Invoke("Requesting securities..");
+
+                var securities = task.Result;
+
+                if (securities.Any())
+                {
+                    NewNotification?.Invoke("Securities successfully received");
+                    _availableSecurities.AddRange(securities.Select(s => $"{s.Kind}\t{s.Ticker}"));
+                    SetContent(OutputKind.Securities);
+                    return;
+                }
+            }
+            catch { }
+
+            NewNotification?.Invoke("Could not get securities from server..");
+        }
+        SetContent(OutputKind.Securities);
     }
 
     private void OnShowLogCommandRequested()
     {
-        Content = new[]
-        {
-            $"{DateTime.UtcNow:O} Initialized everything",
-            $"{DateTime.UtcNow:O} Connection state changed to disconnected",
-            $"{DateTime.UtcNow:O} Closing",
-        };
-        ContentKindChanged?.Invoke();
+        SetContent(OutputKind.Log);
     }
 
     private void OnShowTradesCommandRequested()
     {
-        Content = new[]
-        {
-            $"{DateTime.UtcNow:O} BTCUSDT BUY  768 x 29875.1",
-            $"{DateTime.UtcNow:O} ETHUSDT SELL 435 x 2075.94",
-            $"{DateTime.UtcNow:O} MNRUSDT BUY    4 x 825.15",
-        };
-        ContentKindChanged?.Invoke();
+        SetContent(OutputKind.Trades);
     }
 
     private void OnConnectCommandRequested()
     {
-        try
-        {
-        }
-        catch (Exception)
-        {
-
-            throw;
-        }
+        throw new NotImplementedException();
     }
 
     private void OnDisconnectCommandRequested()
@@ -98,9 +145,31 @@ internal class ConsoleViewmodel
         throw new NotImplementedException();
     }
 
+    private void SetContent(OutputKind kind)
+    {
+        _outputKind = kind;
+        Content = kind switch
+        {
+            OutputKind.Securities => _availableSecurities,
+            OutputKind.Trades => _tradesQueue,
+            OutputKind.Log => _logQueue,
+                     _ => Enumerable.Empty<string>()
+        };
+    }
+
+    private enum OutputKind
+    {
+        Securities,
+        Trades,
+        Log,
+    }
+
+    private OutputKind _outputKind;
     private IConnection _connection;
+    private IMarketDataProvider _marketDataProvider;
+    private IEnumerable<string> content = Enumerable.Empty<string>();
     private readonly List<string> _subscriptions = new();
-    private readonly List<string> _available = new(1000);
+    private readonly List<string> _availableSecurities = new(1000);
     private readonly Queue<string> _logQueue = new(10000);
     private readonly Queue<string> _tradesQueue = new(10000);
 }

@@ -50,22 +50,31 @@ namespace ConsoleUI
                 return;
             }
 
+            Console.SetWindowSize(ConsoleMinWidth, ConsoleMinHeight);
+
             _initialized = true;
             _viewmodel = vm;
+
+            Console.Title = vm.ConnectionState;
 
             vm.ConnectionChanged += state => Console.Title = state;
             vm.NewNotification += PlotMessage;
             vm.NewContent += AppendContent;
             vm.ContentKindChanged += Redraw;
+            vm.UserPromptRequested += OnUserPromptRequested;
 
             Redraw();
             SetConsoleSizeWatcher();
         }
 
-
         public static string? PromptUser(string question)
         {
             return PlotUserPrompt(question);
+        }
+
+        private static void OnUserPromptRequested(string message, Action<string> inputHandler)
+        {
+            inputHandler(PromptUser(message));
         }
 
         private static void PlotCommandsDescription()
@@ -98,7 +107,8 @@ namespace ConsoleUI
 
             var sb = new StringBuilder(65_536);
 
-            sb.AppendJoin("\n", _viewmodel.Content);
+            sb.Append('\t');
+            sb.AppendJoin("\n\t", _viewmodel.Content);
 
             _contentLength = _viewmodel.Content.TryGetNonEnumeratedCount(out int count)
                 ? count
@@ -162,26 +172,30 @@ namespace ConsoleUI
 
         private static void SetConsoleSizeWatcher()
         {
-            const int MinWidth = 75;
-            const int MinHeight = 36;
-
             Task.Run(() =>
             {
                 while (true)
                 {
-                    if (Console.WindowHeight < MinHeight || Console.WindowWidth < MinWidth)
+                    try
                     {
-                        Console.SetWindowSize(MinWidth, MinHeight);
+                        if (Console.WindowHeight < ConsoleMinHeight || Console.WindowWidth < ConsoleMinWidth)
+                        {
+                            Console.SetWindowSize(ConsoleMinWidth, ConsoleMinHeight);
+                        }
+                        if (Console.WindowWidth != _lastConsoleWidth)
+                        {
+                            _lastConsoleWidth = Console.WindowWidth;
+                            _emptyLine = new(' ', _lastConsoleWidth);
+                        }
+                        Task.Delay(50).Wait();
                     }
-                    if (Console.WindowWidth != _lastConsoleWidth)
-                    {
-                        _lastConsoleWidth = Console.WindowWidth;
-                        _emptyLine = new(' ', _lastConsoleWidth);
-                    }
-                    Thread.Sleep(30);
+                    catch { }
                 }
             });
         }
+
+        private const int ConsoleMinWidth = 75;
+        private const int ConsoleMinHeight = 36;
 
         private static int _lastConsoleWidth = 0;
         private static string? _emptyLine;
