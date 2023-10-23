@@ -47,19 +47,19 @@ namespace MarketDataProvider
         }
 
         public static bool TryGetFreshFromCache<TKey, TCache>(
-            this Dictionary<TKey, Cache<TCache>> repository, TKey key, out IEnumerable<TCache> cachedItems) 
+            this Dictionary<TKey, Cache<TCache>> repository, TKey key, out IReadOnlyDictionary<string, TCache>? cachedItems) 
                 where TKey : notnull
         {
             if (!repository.TryGetValue(key, out var cache))
             {
                 repository[key] = new();
-                cachedItems = Enumerable.Empty<TCache>();
+                cachedItems = null;
                 return false;
             }
 
             if (cache.IsOutdated)
             {
-                cachedItems = Enumerable.Empty<TCache>();
+                cachedItems = null;
                 return false;
             }
 
@@ -98,6 +98,29 @@ namespace MarketDataProvider
 
             deserialized = default;
             return false;
+        }
+
+        public static ISecurity? FindInCache(this IEnumerable<Cache<ISecurity>> caches, string? ticker)
+        {
+            if (ticker is null)
+            {
+                return null;
+            }
+
+            foreach (var cache in caches)
+            {
+                if (cache.Items!.TryGetValue(ticker, out var security))
+                {
+                    return security;
+                }
+            }
+
+            return default;
+        }
+
+        public static DateTime ToBybitTimestamp(this long value)
+        {
+            return DateTime.UnixEpoch.AddMilliseconds(value);
         }
     }
 }

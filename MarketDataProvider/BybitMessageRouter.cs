@@ -7,15 +7,26 @@ namespace MarketDataProvider;
 
 internal class BybitMessageRouter
 {
-    public event Action<RequestResponseMessage>? OnRequestResponseMessage;
-    public event Action<StreamMessage<SpotUpdate>>? OnSpotSecurityUpdated;
+    public event Action<RequestResponseMessage>? RequestResponseMessage;
+    public event Action<StreamMessage<SpotUpdate>>? SpotSecurityUpdated;
+    public event Action<StreamMessage<TradeDescription>>? NewTrade;
 
-    private JSchema? _spotSecurityUpdated;
-    public JSchema SpotSecurityUpdated
+    private JSchema? _tradeSchema;
+    public JSchema TradeSchema
     {
         get
         {
-            return _spotSecurityUpdated ??= 
+            return _tradeSchema ??=
+                _schemaGenerator.Generate(typeof(StreamMessage<TradeDescription>));
+        }
+    }
+
+    private JSchema? _spotSecurityUpdatedSchema;
+    public JSchema SpotSecurityUpdatedSchema
+    {
+        get
+        {
+            return _spotSecurityUpdatedSchema ??= 
                 _schemaGenerator.Generate(typeof(StreamMessage<SpotUpdate>));
         }
     }
@@ -54,13 +65,19 @@ internal class BybitMessageRouter
 
             if (jobj.Is<RequestResponseMessage>(RequestResponseSchema, out var requestResponseMsg))
             {
-                OnRequestResponseMessage?.Invoke(requestResponseMsg);
+                RequestResponseMessage?.Invoke(requestResponseMsg);
                 return;
             }
 
-            if (jobj.Is<StreamMessage<SpotUpdate>>(SpotSecurityUpdated, out var spotUpdate))
+            if (jobj.Is<StreamMessage<TradeDescription>>(TradeSchema, out var newtrade))
             {
-                OnSpotSecurityUpdated?.Invoke(spotUpdate);
+                NewTrade?.Invoke(newtrade);
+                return;
+            }
+
+            if (jobj.Is<StreamMessage<SpotUpdate>>(SpotSecurityUpdatedSchema, out var spotUpdate))
+            {
+                SpotSecurityUpdated?.Invoke(spotUpdate);
                 return;
             }
         }

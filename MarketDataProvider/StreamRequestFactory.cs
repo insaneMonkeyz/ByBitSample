@@ -16,23 +16,23 @@ namespace MarketDataProvider.Bybit.Rest
             };
         }
 
-        public RequestMessage CreateSubscribeMessage(string ticker)
+        public RequestMessage CreateSubscribeTradesMessage(string ticker)
         {
             return new RequestMessage
             {
                 Id = (_lastRequestId++).ToString(),
                 Operation = StreamOperations.Subscribe,
-                Args = new object[] { $"tickers.{ticker}" } 
+                Args = new object[] { $"{StreamTopics.Trades}.{ticker}" } 
             };
         }
 
-        public RequestMessage CreateUnsubscribeMessage(string ticker)
+        public RequestMessage CreateUnsubscribeTradesMessage(string ticker)
         {
             return new RequestMessage
             {
                 Id = (_lastRequestId++).ToString(),
                 Operation = StreamOperations.Unsubscribe,
-                Args = new object[] { $"tickers.{ticker}" }
+                Args = new object[] { $"{StreamTopics.Trades}.{ticker}" }
             };
         }
     }

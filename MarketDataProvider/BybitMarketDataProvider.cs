@@ -21,14 +21,14 @@ namespace MarketDataProvider
 
             if(_securitiesCache.TryGetFreshFromCache(category, out var cached))
             {
-                return cached;
+                return cached!.Values;
             }
 
             var getSecuritiesUri = _restRequestFactory.CreateGetSecuritiesRequest(category);
             var response = await RequestFromRestApi<Response<SpotSecurityDescription>>(getSecuritiesUri);
             var securities = response.ToSecurities(filter.Kind!.Value);
 
-            _securitiesCache[category].Update(securities);
+            _securitiesCache[category].Update(securities, sec => sec.Ticker);
 
             return filter.TickerTemplate != null
                 ? securities.Where(s => s.Ticker.Contains(filter.TickerTemplate, StringComparison.CurrentCultureIgnoreCase))
@@ -41,7 +41,7 @@ namespace MarketDataProvider
                 throw new InvalidOperationException("Provider is not connected");
             }
 
-            var subscribeRequest = _streamRequestFactory.CreateSubscribeMessage(security.Ticker);
+            var subscribeRequest = _streamRequestFactory.CreateSubscribeTradesMessage(security.Ticker);
 
             await AwaitServerReply(subscribeRequest);
         }
@@ -52,7 +52,7 @@ namespace MarketDataProvider
                 throw new InvalidOperationException("Provider is not connected");
             }
 
-            var subscribeRequest = _streamRequestFactory.CreateUnsubscribeMessage(security.Ticker);
+            var subscribeRequest = _streamRequestFactory.CreateUnsubscribeTradesMessage(security.Ticker);
 
             await AwaitServerReply(subscribeRequest);
         }
@@ -82,6 +82,7 @@ namespace MarketDataProvider
             _connection = connection as IConnection;
             _dataTransmitter = connection as IDataTransmitter;
             _msgRouter = new(_dataTransmitter);
+            _msgRouter.NewTrade += OnNewTrade;
             _connection.ConnectionStateChanged += (_, state) => ConnectionStateChanged?.Invoke(this, state);
         }
 
@@ -96,12 +97,12 @@ namespace MarketDataProvider
             {
                 if (message.Id!.Equals(response.Id))
                 {
-                    _msgRouter.OnRequestResponseMessage -= onServerReply;
+                    _msgRouter.RequestResponseMessage -= onServerReply;
                     serverReply.SetResult();
                 }
             }
 
-            _msgRouter.OnRequestResponseMessage += onServerReply;
+            _msgRouter.RequestResponseMessage += onServerReply;
 
             await _dataTransmitter.SendDataAsync(message);
             await serverReply.Task;
@@ -121,6 +122,16 @@ namespace MarketDataProvider
             if (filter.EntityType is not null && filter.EntityType != TradingEntityType.Cryptocurrency)
             {
                 throw new NotSupportedException("This Market Data Provider only supports cryptocurrencies");
+            }
+        }
+        private void OnNewTrade(StreamMessage<TradeDescription> trademsg)
+        {
+            var trade = MessageToEntityConverter
+                .Convert(trademsg, _securitiesCache.Values.FindInCache);
+
+            if (trade != null)
+            {
+                NewTrades?.Invoke(this, trade); 
             }
         }
         private async Task<TExpected?> RequestFromRestApi<TExpected>(string uri)
