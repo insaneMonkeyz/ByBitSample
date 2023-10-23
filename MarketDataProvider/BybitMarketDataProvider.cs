@@ -4,6 +4,7 @@ using MarketDataProvider.BybitApi.DTO.Rest;
 using MarketDataProvider.BybitApi.DTO.Rest.Market;
 using MarketDataProvider.BybitApi.DTO.Stream;
 using Newtonsoft.Json;
+using ZeroLog;
 
 namespace MarketDataProvider
 {
@@ -17,22 +18,35 @@ namespace MarketDataProvider
         {
             Validate(filter);
 
-            var category = filter.Kind.ToBybitCategory();
-
-            if(_securitiesCache.TryGetFreshFromCache(category, out var cached))
+            try
             {
-                return cached!.Values;
+                var category = filter.Kind.ToBybitCategory();
+
+                if (_securitiesCache.TryGetFreshFromCache(category, out var cached))
+                {
+                    return cached!.Values;
+                }
+
+                var getSecuritiesUri = _restRequestFactory.CreateGetSecuritiesRequest(category);
+                var response = await RequestFromRestApi<Response<SpotSecurityDescription>>(getSecuritiesUri);
+                var securities = response.ToSecurities(filter.Kind!.Value);
+
+                if (securities is null || !securities.Any())
+                {
+                    return Enumerable.Empty<ISecurity>();
+                }
+
+                _securitiesCache[category].Update(securities, sec => sec.Ticker);
+
+                return filter.TickerTemplate != null
+                    ? securities.Where(s => s.Ticker.Contains(filter.TickerTemplate, StringComparison.CurrentCultureIgnoreCase))
+                    : securities;
             }
-
-            var getSecuritiesUri = _restRequestFactory.CreateGetSecuritiesRequest(category);
-            var response = await RequestFromRestApi<Response<SpotSecurityDescription>>(getSecuritiesUri);
-            var securities = response.ToSecurities(filter.Kind!.Value);
-
-            _securitiesCache[category].Update(securities, sec => sec.Ticker);
-
-            return filter.TickerTemplate != null
-                ? securities.Where(s => s.Ticker.Contains(filter.TickerTemplate, StringComparison.CurrentCultureIgnoreCase))
-                : securities;
+            catch (Exception e)
+            {
+                _log.Error($"Failed to request the list of securities from the server", e);
+                return Enumerable.Empty<ISecurity>();
+            }
         }
         public async Task SubscribeTradesAsync(ISecurity security)
         {
@@ -41,9 +55,16 @@ namespace MarketDataProvider
                 throw new InvalidOperationException("Provider is not connected");
             }
 
-            var subscribeRequest = _streamRequestFactory.CreateSubscribeTradesMessage(security.Ticker);
+            try
+            {
+                var subscribeRequest = _streamRequestFactory.CreateSubscribeTradesMessage(security.Ticker);
 
-            await AwaitServerReply(subscribeRequest);
+                await AwaitServerReply(subscribeRequest);
+            }
+            catch (Exception e)
+            {
+                _log.Error($"Could not subscribe to trades", e);
+            }
         }
         public async Task UnsubscribeTradesAsync(ISecurity security)
         {
@@ -52,9 +73,16 @@ namespace MarketDataProvider
                 throw new InvalidOperationException("Provider is not connected");
             }
 
-            var subscribeRequest = _streamRequestFactory.CreateUnsubscribeTradesMessage(security.Ticker);
+            try
+            {
+                var subscribeRequest = _streamRequestFactory.CreateUnsubscribeTradesMessage(security.Ticker);
 
-            await AwaitServerReply(subscribeRequest);
+                await AwaitServerReply(subscribeRequest);
+            }
+            catch (Exception e)
+            {
+                _log.Error($"Could not unsubscribe from trades", e);
+            }
         }
         public async Task ConnectAsync(ConnectionParameters parameters, CancellationToken cancellationToken)
         {
@@ -69,8 +97,11 @@ namespace MarketDataProvider
         {
             if (_disposed)
             {
+                _log.Debug($"Attempting to dispose an already disposed {nameof(BybitMarketDataProvider)}");
                 return;
             }
+
+            _log.Debug($"Disposing {nameof(BybitMarketDataProvider)}");
 
             _disposed = true;
 
@@ -107,20 +138,23 @@ namespace MarketDataProvider
             await _dataTransmitter.SendDataAsync(message);
             await serverReply.Task;
         }
-        private static void Validate(ISecurityFilter filter)
+        private void Validate(ISecurityFilter filter)
         {
             if (filter is null)
             {
+                _log.Error("Trying to use security filter that is null");
                 throw new ArgumentNullException(nameof(filter));
             }
 
             if (filter.Kind.GetValueOrDefault() == SecurityKind.Unknown)
             {
+                _log.Error("Unsupported kind of security");
                 throw new ArgumentException($"{nameof(filter)}.{nameof(filter.Kind)} is not set");
             }
 
             if (filter.EntityType is not null && filter.EntityType != TradingEntityType.Cryptocurrency)
             {
+                _log.Error("Filter requires to provide an entity type that is not a cryptocurrency");
                 throw new NotSupportedException("This Market Data Provider only supports cryptocurrencies");
             }
         }
@@ -131,28 +165,25 @@ namespace MarketDataProvider
 
             if (trade != null)
             {
-                NewTrades?.Invoke(this, trade); 
+                try { NewTrades?.Invoke(this, trade); }
+                catch { }
             }
         }
         private async Task<TExpected?> RequestFromRestApi<TExpected>(string uri)
         {
-            try
-            {
-                var response = await _restClient.GetAsync(uri);
+            var response = await _restClient.GetAsync(uri);
+            var message = await response.Content.ReadAsStringAsync();
 
-                if (response.IsSuccessStatusCode)
-                {
-                    var message = await response.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<TExpected>(message);
-                }
-            }
-            catch (Exception)
+            if (response.IsSuccessStatusCode)
             {
+                return JsonConvert.DeserializeObject<TExpected>(message);
             }
 
+            _log.Error($"Requesting '{uri}' returned status code {response.StatusCode}");
             return default;
         }
 
+        private readonly Log _log = LogManager.GetLogger<IConnection>();
         private readonly IConnection _connection;
         private readonly IDataTransmitter _dataTransmitter;
         private readonly BybitMessageRouter _msgRouter;

@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using MarketDataProvider;
+﻿using MarketDataProvider;
 using ZeroLog;
 using ZeroLog.Appenders;
 using ZeroLog.Configuration;

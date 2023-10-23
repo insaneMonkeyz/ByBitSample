@@ -14,7 +14,7 @@ namespace MarketDataProvider.WebSocket
         private static readonly TimeSpan _smallestConnectionTimeout = TimeSpan.FromMilliseconds(100);
 
         private readonly Log _log = LogManager.GetLogger<IConnection>();
-        private readonly Log _messageLog = LogManager.GetLogger("Messaging");
+        private readonly Log _messageLog = LogManager.GetLogger<IDataTransmitter>();
         private readonly IWebSocketClient _websocket;
         private readonly IHeartbeatProvider _heartbeatMessageFactory;
         private ConnectionParameters? _connectionParameters;

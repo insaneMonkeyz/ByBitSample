@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Schema;
 using Newtonsoft.Json.Schema.Generation;
+using ZeroLog;
 
 namespace MarketDataProvider;
 
@@ -81,11 +82,13 @@ internal class BybitMessageRouter
                 return;
             }
         }
-        catch (Exception)
+        catch (Exception e)
         {
+            _log.Error($"Exception on message routing", e);
         }
     }
 
     private readonly IDataTransmitter _dataTransmitter;
     private readonly JSchemaGenerator _schemaGenerator = new();
+    private readonly Log _log = LogManager.GetLogger<IConnection>()
 }
