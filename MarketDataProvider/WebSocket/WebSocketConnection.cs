@@ -79,7 +79,7 @@ namespace MarketDataProvider.WebSocket
                     using var timeoutCancellation = new CancellationTokenSource(parameters.ConnectionTimeout);
                     using var aggregateCancellation = CancellationTokenSource.CreateLinkedTokenSource(userCancellation, timeoutCancellation.Token);
 
-                    await _websocket.ConnectAsync(new(parameters.Uri!), aggregateCancellation.Token);
+                    await _websocket.ConnectAsync(new(parameters.StreamHost!), aggregateCancellation.Token);
                 }
                 catch (TaskCanceledException e)
                 {
@@ -102,7 +102,7 @@ namespace MarketDataProvider.WebSocket
             }
 
             ConnectionState = ConnectionState.Disconnected;
-            throw new ConnectionException($"Could not establish connection with {parameters.Uri} even after {parameters.ReconnectionAttempts} attempts");
+            throw new ConnectionException($"Could not establish connection with {parameters.StreamHost} even after {parameters.ReconnectionAttempts} attempts");
         }
         public async Task DisconnectAsync(CancellationToken userCancellation)
         {
@@ -146,8 +146,6 @@ namespace MarketDataProvider.WebSocket
             {
                 var msgBuffer = NetJsonDeserializer.SerializeToUtf8Bytes(data);
 
-                Console.WriteLine(Encoding.UTF8.GetString(msgBuffer));
-
                 await _websocket.SendAsync(msgBuffer,
                     WebSocketMessageType.Text,
                         WebSocketMessageFlags.EndOfMessage,
@@ -174,12 +172,12 @@ namespace MarketDataProvider.WebSocket
         {
             if (parameters is null)
             {
-                throw new ArgumentNullException(nameof(parameters));
+                throw new InvalidConfigurationException(nameof(parameters));
             }
 
-            if (parameters.Uri is null)
+            if (parameters.StreamHost is null)
             {
-                throw new ArgumentException($"uri is null");
+                throw new InvalidConfigurationException($"{nameof(ConnectionParameters.StreamHost)} is null");
             }
 
             if (parameters.UseHeartbeating && parameters.HeartbeatInterval < _smallestHeartbeatRepeatFrequency)
@@ -215,9 +213,6 @@ namespace MarketDataProvider.WebSocket
                         _websocket.ReceiveAsync(buffer, timeoutCancellation.Token).Wait();
 
                         var json = Encoding.UTF8.GetString(buffer);
-
-                        Console.WriteLine(json);
-
                         var message = JObject.Parse(json);
 
                         if (!_heartbeatMessageFactory.IsHeartbeatReply(message))

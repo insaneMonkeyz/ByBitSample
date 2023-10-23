@@ -13,7 +13,7 @@ namespace MarketDataProviderTests.IConnectionTests
         {
             _connectionParams = new()
             {
-                Uri = "wss://test.org/",
+                StreamHost = "wss://test.org/",
                 ConnectionTimeout = Timeout.InfiniteTimeSpan,
                 HeartbeatInterval = TimeSpan.FromMilliseconds(100),
                 UseHeartbeating = true,

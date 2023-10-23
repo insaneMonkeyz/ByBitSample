@@ -1,4 +1,5 @@
 ﻿using MarketDataProvider;
+using MarketDataProvider.Exceptions;
 
 namespace ConsoleUI;
 
@@ -13,7 +14,7 @@ internal class ConsoleViewmodel
 
     public string CommandsDescriptionContent =
         $$"""
-                    Press Ctrl+C to connect to the server
+                    Press Ctrl+K to connect to the server
                     Press Ctrl+D to disconnect from the server
 
                     Press Ctrl+S to subscribe to trades
@@ -69,14 +70,13 @@ internal class ConsoleViewmodel
 
         _connection = ConnectionsFactory.CreateByBitConnection();
         _marketDataProvider = new BybitMarketDataProvider(_connection as IConnectableDataTransmitter);
-        //_connection.ConnectionStateChanged += (_, state) => ConnectionChanged?.Invoke(state.ToString());
+        _connection.ConnectionStateChanged += (_, state) => ConnectionChanged?.Invoke(state.ToString());
     }
 
     private void OnUnsubscribeCommandRequested()
     {
         throw new NotImplementedException();
     }
-
     private void OnSubscribeCommandRequested()
     {
         if (_connection.ConnectionState != MarketDataProvider.ConnectionState.Connected)
@@ -122,14 +122,13 @@ internal class ConsoleViewmodel
 
             NewNotification?.Invoke("Could not get securities from server..");
         }
+
         SetContent(OutputKind.Securities);
     }
-
     private void OnShowLogCommandRequested()
     {
         SetContent(OutputKind.Log);
     }
-
     private void OnShowTradesCommandRequested()
     {
         SetContent(OutputKind.Trades);
@@ -137,12 +136,71 @@ internal class ConsoleViewmodel
 
     private void OnConnectCommandRequested()
     {
-        throw new NotImplementedException();
-    }
+        try
+        {
+            if (_connection.ConnectionState == MarketDataProvider.ConnectionState.Connected)
+            {
+                NewNotification?.Invoke("Already connected");
+                return;
+            }
+            else if (_connection.ConnectionState == MarketDataProvider.ConnectionState.Connecting)
+            {
+                NewNotification?.Invoke("Still trying to connect");
+                return;
+            }
 
+            NewNotification?.Invoke("Loading connection configuration..");
+            var parameters = ConfigurationManager.GetOrCreateConnectionParametersAsync().Result;
+
+            NewNotification?.Invoke("Connecting..");
+            _connection.ConnectAsync(parameters, CancellationToken.None).Wait();
+            NewNotification?.Invoke(string.Empty);
+        }
+        catch (AggregateException ae) when (ae.InnerException is InvalidConfigurationException e)
+        {
+            NewNotification?.Invoke($"Configuration parameter {e.Message} was invalid. Gonna try with default one");
+            var newparams = ConfigurationManager.CreateDefaultParameters();
+            ConfigurationManager.SaveConnectionParametersAsync(newparams);
+
+            try
+            {
+                _connection.ConnectAsync(newparams, CancellationToken.None).Wait();
+                NewNotification?.Invoke("Successfully connected with new configuration");
+            }
+            catch
+            {
+                NewNotification?.Invoke("Connection attempt failed completely");
+            }
+
+        }
+        catch (AggregateException ae) when (ae.InnerException is ConnectionException e)
+        {
+            NewNotification?.Invoke(e.Message);
+        }
+        catch (Exception e)
+        {
+            NewNotification?.Invoke("Could not establish connection");
+        }
+    }
     private void OnDisconnectCommandRequested()
     {
-        throw new NotImplementedException();
+        try
+        {
+            if (_connection.ConnectionState == MarketDataProvider.ConnectionState.Disconnecting ||
+                _connection.ConnectionState == MarketDataProvider.ConnectionState.Disconnected)
+            {
+                NewNotification?.Invoke("Already disconnected");
+                return;
+            }
+
+            NewNotification?.Invoke("Disconnecting..");
+            _connection.DisconnectAsync(CancellationToken.None).Wait();
+            NewNotification?.Invoke(string.Empty);
+        }
+        catch
+        {
+            NewNotification?.Invoke("Error while disconnecting");
+        }
     }
 
     private void SetContent(OutputKind kind)

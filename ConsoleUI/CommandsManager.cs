@@ -30,7 +30,7 @@
                                 SafeInvoke(UnsubscribeCommandRequested);
                                 break;
                             }
-                        case ConsoleKey.C:
+                        case ConsoleKey.K:
                             {
                                 SafeInvoke(ConnectCommandRequested);
                                 break;

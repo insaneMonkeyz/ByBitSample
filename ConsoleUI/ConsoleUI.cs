@@ -67,14 +67,9 @@ namespace ConsoleUI
             SetConsoleSizeWatcher();
         }
 
-        public static string? PromptUser(string question)
-        {
-            return PlotUserPrompt(question);
-        }
-
         private static void OnUserPromptRequested(string message, Action<string> inputHandler)
         {
-            inputHandler(PromptUser(message));
+            inputHandler(PlotUserPrompt(message));
         }
 
         private static void PlotCommandsDescription()
@@ -142,8 +137,6 @@ namespace ConsoleUI
 
                 Console.SetCursorPosition(0, PromptPosition);
                 Console.Write($"\t{message}");
-
-                SetCursorToLastPosition();
             }
         }
         private static void AppendContent(string message)

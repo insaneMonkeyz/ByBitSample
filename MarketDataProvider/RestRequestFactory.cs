@@ -5,8 +5,8 @@ namespace MarketDataProvider.Bybit.Rest
 
     internal class RestRequestFactory
     {
+        public const string GetSecuritiesPath = "v5/market/tickers";
         public string HostAddress { get; init; } = "https://api-testnet.bybit.com";
-        public string GetSecuritiesPath { get; init; } = "v5/market/tickers";
 
         private string? _getSecuritiesAddress;
         private string GetSecuritiesAddress

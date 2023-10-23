@@ -15,7 +15,7 @@ namespace MarketDataProviderTests.IConnectionTests
         {
             _connectionParams = new()
             {
-                Uri = "wss://test.org/",
+                StreamHost = "wss://test.org/",
                 ConnectionTimeout = TimeSpan.FromSeconds(10),
             };
             _socketMockFactory = new();

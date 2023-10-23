@@ -17,7 +17,7 @@ internal static class ConfigurationManager
 
         return parameters;
     }
-    private static ConnectionParameters CreateDefaultParameters()
+    public static ConnectionParameters CreateDefaultParameters()
     {
         return new()
         {
@@ -30,7 +30,7 @@ internal static class ConfigurationManager
             UseHeartbeating = true,
         };
     }
-    private static async Task<ConnectionParameters?> LoadConnectionParametersAsync()
+    public static async Task<ConnectionParameters?> LoadConnectionParametersAsync()
     {
         if (!File.Exists(ConnectionConfigurationFile))
         {
@@ -44,7 +44,7 @@ internal static class ConfigurationManager
             return serializer.Deserialize(fileStream) as ConnectionParameters;
         });
     }
-    private static async Task SaveConnectionParametersAsync(ConnectionParameters parameters)
+    public static async Task SaveConnectionParametersAsync(ConnectionParameters parameters)
     {
         await Task.Run(() =>
         {
