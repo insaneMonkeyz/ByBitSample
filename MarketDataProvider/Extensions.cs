@@ -1,6 +1,6 @@
 ﻿using MarketDataProvider.BybitApi;
-using MarketDataProvider.BybitApi.DTO.Rest.Market;
 using MarketDataProvider.BybitApi.DTO.Rest;
+using MarketDataProvider.BybitApi.DTO.Rest.Market;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Schema;
 
@@ -67,10 +67,10 @@ namespace MarketDataProvider
             return true;
         }
 
-        public static Security[] ToSecurities<TSecurity>(this Response<TSecurity>? responseMessage, SecurityKind kind) 
+        public static Security[] ToSecurities<TSecurity>(this Response<TSecurity> responseMessage, SecurityKind kind) 
                where TSecurity : SecurityDescription
         {
-            var descriptions = responseMessage?.Data?.Entities;
+            var descriptions = responseMessage.Data?.Entities;
 
             if (descriptions is null)
             {

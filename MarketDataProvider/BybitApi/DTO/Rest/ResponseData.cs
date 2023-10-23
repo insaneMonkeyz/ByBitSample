@@ -3,7 +3,7 @@
 namespace MarketDataProvider.BybitApi.DTO.Rest
 {
     [Serializable]
-    public class ResponseData<T>
+    public struct ResponseData<T>
     {
         public string? Category { get; set; }
 

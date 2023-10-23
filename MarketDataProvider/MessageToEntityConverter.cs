@@ -11,7 +11,7 @@ namespace MarketDataProvider
                 return default;
             }
 
-            var trade = message.Data.FirstOrDefault();
+            var trade = message.Value.Data.FirstOrDefault();
 
             if (string.IsNullOrEmpty(trade.Ticker))
             {

@@ -3,7 +3,7 @@
 namespace MarketDataProvider.BybitApi.DTO.Stream
 {
     [Serializable]
-    public class StreamMessage<T>
+    public struct StreamMessage<T>
     {
         [JsonProperty("id", Required = Required.Default)]
         public string? Id { get; set; }

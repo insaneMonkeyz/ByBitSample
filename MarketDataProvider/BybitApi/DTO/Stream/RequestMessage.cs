@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 namespace MarketDataProvider.BybitApi.DTO.Stream
 {
     [Serializable]
-    public class RequestMessage
+    public struct RequestMessage
     {
         [JsonProperty("req_id")]
         [JsonPropertyName("req_id")]
