@@ -8,7 +8,7 @@ using ZeroLog;
 
 namespace MarketDataProvider
 {
-    public class BybitMarketDataProvider : IMarketDataProvider, IConnection
+    internal class BybitMarketDataProvider : IMarketDataProvider, IConnection
     {
         public event EventHandler<ITrade>? NewTrades;
         public event EventHandler<ConnectionState>? ConnectionStateChanged;

@@ -71,7 +71,7 @@ internal class ConsoleViewmodel
 
         _connection = ConnectionsFactory.CreateByBitConnection();
         _connection.ConnectionStateChanged += OnConnectionStateChanged;
-        _marketDataProvider = new BybitMarketDataProvider(_connection as IConnectableDataTransmitter);
+        _marketDataProvider = MarketDataProvidersFactory.CreateBybitProvider(_connection as IConnectableDataTransmitter);
         _marketDataProvider.NewTrades += OnNewTrades;
     }
 
