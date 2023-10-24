@@ -7,7 +7,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MarketDataProvider", "Marke
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleUI", "ConsoleUI\ConsoleUI.csproj", "{0D9EDB8D-D8E6-433C-AA25-03E8F1F474A5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MarketDataProviderTests", "MarketDataProviderTests\MarketDataProviderTests.csproj", "{8CB280FD-EEBB-4B17-8355-CB36A2310B0B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MarketDataProviderTests", "MarketDataProviderTests\MarketDataProviderTests.csproj", "{8CB280FD-EEBB-4B17-8355-CB36A2310B0B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C68F8CFD-BE2F-4D39-8FC0-A311B99D89A6}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
