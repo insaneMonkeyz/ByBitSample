@@ -50,6 +50,7 @@ namespace ConsoleUI
                 return;
             }
 
+            CommandsManager.HopOnTopCommandRequested += OnHopOnTopCommandRequested;
             Console.SetWindowSize(ConsoleMinWidth, ConsoleMinHeight);
 
             _initialized = true;
@@ -62,11 +63,25 @@ namespace ConsoleUI
             vm.NewContent += AppendContent;
             vm.ContentKindChanged += Redraw;
             vm.UserPromptRequested += OnUserPromptRequested;
+            vm.SubscriptionChanged += OnSubscriptionChanged;
 
             Redraw();
             SetConsoleSizeWatcher();
         }
 
+        private static void OnHopOnTopCommandRequested()
+        {
+            lock (_outputSync)
+            {
+                Console.SetCursorPosition(0, 0);
+                Console.SetCursorPosition(0, PromptPosition);
+            }
+        }
+
+        private static void OnSubscriptionChanged()
+        {
+            Redraw();
+        }
         private static void OnUserPromptRequested(string message, Action<string> inputHandler)
         {
             inputHandler(PlotUserPrompt(message));
@@ -88,8 +103,12 @@ namespace ConsoleUI
 
             lock (_outputSync)
             {
+                var msg = SubscriptionsMessage;
+                var numLines = msg.Count(c => c == '\n');
+
+                ClearRange(SubscribtionsTemplatePosition, numLines);
                 Console.SetCursorPosition(0, SubscribtionsTemplatePosition);
-                Console.Write(SubscriptionsMessage);
+                Console.Write(msg);
                 SetCursorToLastPosition();
             }
         }
@@ -147,13 +166,23 @@ namespace ConsoleUI
                 Console.WriteLine(message);
             }
         }
+        private static void RedrawServicePart()
+        {
+            lock (_outputSync)
+            {
+                PlotCommandsDescription();
+                PlotSubscriptions();
+                PlotMessage(string.Empty); 
+            }
+        }
         private static void Redraw()
         {
-            Console.Clear();
-            PlotCommandsDescription();
-            PlotSubscriptions();
-            PlotMessage(string.Empty);
-            PlotContent();
+            lock (_outputSync)
+            {
+                Console.Clear();
+                RedrawServicePart();
+                PlotContent(); 
+            }
         }
         private static void SetCursorToLastPosition()
         {
@@ -162,7 +191,18 @@ namespace ConsoleUI
                 Console.SetCursorPosition(0, OutputPosition + _contentLength + 1);
             }
         }
+        private static void ClearRange(int position, int depth)
+        {
+            lock (_outputSync)
+            {
+                Console.SetCursorPosition(0, position);
 
+                for (int i = 0; i < depth; i++)
+                {
+                    Console.WriteLine(_emptyLine);
+                }
+            }
+        }
         private static void SetConsoleSizeWatcher()
         {
             Task.Run(() =>

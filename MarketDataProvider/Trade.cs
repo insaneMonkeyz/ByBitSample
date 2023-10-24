@@ -7,5 +7,10 @@
         public decimal Price { get; init; }
         public decimal Size { get; init; }
         public DateTime Timestamp { get; init; }
+
+        public override string ToString()
+        {
+            return $"{Timestamp:O} {Security} {Side} {Size} x {Price}";
+        }
     }
 }

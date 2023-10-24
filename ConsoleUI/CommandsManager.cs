@@ -10,6 +10,8 @@
     public static event Action? ShowLogCommandRequested;
     public static event Action? ShowSecuritiesCommandRequested;
 
+    public static event Action? HopOnTopCommandRequested;
+
     public static async Task ListenUserCommands()
     {
         await Task.Run(async () =>
@@ -48,6 +50,11 @@
                         case ConsoleKey.E:
                             {
                                 SafeInvoke(ShowSecuritiesCommandRequested);
+                                break;
+                            }
+                        case ConsoleKey.H:
+                            {
+                                SafeInvoke(HopOnTopCommandRequested);
                                 break;
                             }
                     }

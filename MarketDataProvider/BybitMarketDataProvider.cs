@@ -16,6 +16,8 @@ namespace MarketDataProvider
 
         public async Task<IEnumerable<ISecurity>> GetAvailablSecuritiesAsync(ISecurityFilter filter)
         {
+            _log.Info("Requested list of available securities");
+
             Validate(filter);
 
             try
@@ -50,6 +52,8 @@ namespace MarketDataProvider
         }
         public async Task SubscribeTradesAsync(ISecurity security)
         {
+            _log.Info("Requested subscription to trades");
+
             if (ConnectionState != ConnectionState.Connected)
             {
                 throw new InvalidOperationException("Provider is not connected");
@@ -68,6 +72,8 @@ namespace MarketDataProvider
         }
         public async Task UnsubscribeTradesAsync(ISecurity security)
         {
+            _log.Info("Requested cancellation of subscription to trades");
+
             if (ConnectionState != ConnectionState.Connected)
             {
                 throw new InvalidOperationException("Provider is not connected");

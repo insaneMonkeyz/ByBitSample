@@ -56,7 +56,7 @@ internal class Program
                 new LoggerConfiguration(nameof(IConnection))
                 {
                     LogMessagePoolExhaustionStrategy = LogMessagePoolExhaustionStrategy.Allocate,
-                    Level = LogLevel.Info,
+                    Level = LogLevel.Debug,
                     Appenders =
                     {
                         CreateDefaultLogTarget("connection")
