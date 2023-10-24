@@ -14,7 +14,7 @@ namespace MarketDataProviderTests.IConnectionTests
             _connectionParams = new()
             {
                 StreamHost = "wss://test.org/",
-                ConnectionTimeout = Timeout.InfiniteTimeSpan,
+                ConnectionTimeout = TimeSpan.FromMilliseconds(201),
                 HeartbeatInterval = TimeSpan.FromMilliseconds(100),
                 UseHeartbeating = true,
             };
@@ -56,6 +56,7 @@ namespace MarketDataProviderTests.IConnectionTests
         public async Task HeartbeatFrequencyTest(int heartbeatIntervalMillisec, int expectedHeartbeatsNum)
         {
             _connectionParams.HeartbeatInterval = TimeSpan.FromMilliseconds(heartbeatIntervalMillisec);
+            _connectionParams.ConnectionTimeout = _connectionParams.HeartbeatInterval.Add(TimeSpan.FromMilliseconds(101));
 
             await _connection.ConnectAsync(_connectionParams, CancellationToken.None);
 

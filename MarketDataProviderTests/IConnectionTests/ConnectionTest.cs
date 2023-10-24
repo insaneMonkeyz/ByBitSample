@@ -2,6 +2,7 @@
 using System.Linq.Expressions;
 using System.Net.WebSockets;
 using MarketDataProvider;
+using MarketDataProvider.Bybit.Rest;
 using MarketDataProvider.BybitApi.DTO.Stream;
 using MarketDataProvider.WebSocket;
 using Moq;
@@ -14,7 +15,7 @@ namespace MarketDataProviderTests.IConnectionTests
         protected ConnectionParameters _connectionParams;
 
         protected Mock<IHeartbeatProvider> _heartbeatFactory;
-        protected Heartbeat _heartbeatMsg;
+        protected RequestMessage _heartbeatMsg;
 
         protected TimeSpan _receiveFreezeTime = Timeout.InfiniteTimeSpan;
         protected TimeSpan _sendFreezeTime = Timeout.InfiniteTimeSpan;
@@ -109,10 +110,9 @@ namespace MarketDataProviderTests.IConnectionTests
         protected void SetupHeartbeatLogic()
         {
             _heartbeatFactory = new Mock<IHeartbeatProvider>();
-            _heartbeatMsg = new();
+            _heartbeatMsg.Id = "45645";
             _heartbeatFactory
                 .Setup(f => f.GetNextMessage())
-                .Callback(() => ++_heartbeatMsg.Id)
                 .Returns(() => _heartbeatMsg);
 
         }

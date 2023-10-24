@@ -216,15 +216,15 @@ namespace MarketDataProvider.WebSocket
                             /*3*/   _smallestHeartbeatRepeatFrequency));
             }
 
-            var expectedlatency = TimeSpan.FromMicroseconds(100); 
+            var expectedlatency = TimeSpan.FromMilliseconds(100); 
             if (parameters.UseHeartbeating && parameters.ConnectionTimeout < parameters.HeartbeatInterval.Add(expectedlatency))
             {
-                _log.Error("When the heartbeat rate is lower that connection timeout, " +
+                _log.Error("When the heartbeat rate is higher than connection timeout, " +
                     "it will lead to the loss of connection by timeout, since the server can stay silent until" +
                     "user requests something");
 
                 throw new InvalidConfigurationException(
-                    $"Invalid ConnectionParameters. Heartbeat frequency is lower than the connection timeout");
+                    $"Invalid ConnectionParameters. Heartbeat frequency is too low for the connection timeout");
             }
 
             if (parameters.ConnectionTimeout < _smallestConnectionTimeout &&
