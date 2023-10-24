@@ -23,8 +23,8 @@ internal static class ConfigurationManager
         {
             StreamHost = "wss://stream.bybit.com/v5/public/spot",
             RestHost = "api-testnet.bybit.com",
-            ReconnectionAttempts = 3,
-            ConnectionTimeout = TimeSpan.FromSeconds(10),
+            ReconnectionAttempts = -1, //infinite
+            ConnectionTimeout = TimeSpan.FromSeconds(25),
             HeartbeatInterval = TimeSpan.FromSeconds(20),
             ReconnectionInterval = TimeSpan.FromSeconds(30),
             UseHeartbeating = true,

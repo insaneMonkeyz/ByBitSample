@@ -45,11 +45,6 @@
                                 SafeInvoke(ShowTradesCommandRequested);
                                 break;
                             }
-                        case ConsoleKey.L:
-                            {
-                                SafeInvoke(ShowLogCommandRequested);
-                                break;
-                            }
                         case ConsoleKey.E:
                             {
                                 SafeInvoke(ShowSecuritiesCommandRequested);

@@ -22,7 +22,6 @@ internal class ConsoleViewmodel
 
                     Press Ctrl+E to output available securities
                     Press Ctrl+T to output subscribed trades
-                    Press Ctrl+L to output log
             """;
     public string SubscriptionsContent
     {
@@ -62,7 +61,6 @@ internal class ConsoleViewmodel
         CommandsManager.SubscribeCommandRequested += OnSubscribeCommandRequested;
         CommandsManager.UnsubscribeCommandRequested += OnUnsubscribeCommandRequested;
 
-        CommandsManager.ShowLogCommandRequested += OnShowLogCommandRequested;
         CommandsManager.ShowTradesCommandRequested += OnShowTradesCommandRequested;
         CommandsManager.ShowSecuritiesCommandRequested += OnShowSecuritiesCommandRequested;
 
@@ -122,10 +120,6 @@ internal class ConsoleViewmodel
         }
 
         SetContent(OutputKind.Securities);
-    }
-    private void OnShowLogCommandRequested()
-    {
-        SetContent(OutputKind.Log);
     }
     private void OnShowTradesCommandRequested()
     {

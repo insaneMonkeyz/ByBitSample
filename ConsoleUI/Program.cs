@@ -20,15 +20,13 @@ internal class Program
         static AppenderConfiguration CreateDefaultLogTarget(string logfilename)
         {
             var logfile = $"{DateTime.Now:yyyyMMdd} {logfilename}.txt";
-
-            var logstream = new FileStream(logfile, FileMode.OpenOrCreate, FileAccess.Write);
-            var logstreamWriter = new StreamWriter(logstream);
+            var logstreamWriter = new StreamWriter(logfile, append: true);
 
             return new TextWriterAppender(logstreamWriter)
             {
                 Formatter = new DefaultFormatter
                 {
-                    PrefixPattern = "\n[%date  %time]\t[%level]\t[%thread]\t%[loggerCompact] "
+                    PrefixPattern = "[%date  %time] [%level] [%thread] [%loggerCompact] "
                 }
             };
         }
@@ -41,7 +39,7 @@ internal class Program
                 Level = LogLevel.Debug,
                 Appenders =
                 {
-                    CreateDefaultLogTarget("connection")
+                    CreateDefaultLogTarget("general")
                 }
             },
             Loggers =
@@ -54,8 +52,18 @@ internal class Program
                     {
                         CreateDefaultLogTarget("messages")
                     }
+                },
+                new LoggerConfiguration(nameof(IConnection))
+                {
+                    LogMessagePoolExhaustionStrategy = LogMessagePoolExhaustionStrategy.Allocate,
+                    Level = LogLevel.Info,
+                    Appenders =
+                    {
+                        CreateDefaultLogTarget("connection")
+                    }
                 }
             },
+            AppendingStrategy = AppendingStrategy.Synchronous,
             AutoRegisterEnums = true,
             LogMessageBufferSize = 1024,
         };

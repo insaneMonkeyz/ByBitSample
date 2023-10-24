@@ -81,6 +81,8 @@ internal class BybitMessageRouter
                 SpotSecurityUpdated?.Invoke(spotUpdate);
                 return;
             }
+
+            _log.Warn($"Message not routed");
         }
         catch (Exception e)
         {
@@ -90,5 +92,5 @@ internal class BybitMessageRouter
 
     private readonly IDataTransmitter _dataTransmitter;
     private readonly JSchemaGenerator _schemaGenerator = new();
-    private readonly Log _log = LogManager.GetLogger<IConnection>()
+    private readonly Log _log = LogManager.GetLogger<IConnection>();
 }

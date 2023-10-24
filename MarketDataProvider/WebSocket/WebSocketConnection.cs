@@ -13,8 +13,8 @@ namespace MarketDataProvider.WebSocket
         private static readonly TimeSpan _smallestHeartbeatRepeatFrequency = TimeSpan.FromMilliseconds(100);
         private static readonly TimeSpan _smallestConnectionTimeout = TimeSpan.FromMilliseconds(100);
 
-        private readonly Log _log = LogManager.GetLogger<IConnection>();
-        private readonly Log _messageLog = LogManager.GetLogger<IDataTransmitter>();
+        private readonly Log _log = LogManager.GetLogger(nameof(IConnection));
+        private readonly Log _messageLog = LogManager.GetLogger(nameof(IDataTransmitter));
         private readonly IWebSocketClient _websocket;
         private readonly IHeartbeatProvider _heartbeatMessageFactory;
         private ConnectionParameters? _connectionParameters;
@@ -105,10 +105,12 @@ namespace MarketDataProvider.WebSocket
             ConnectionState = ConnectionState.Disconnected;
             throw new ConnectionException($"Could not establish connection with {parameters.StreamHost} even after {parameters.ReconnectionAttempts} attempts");
         }
+
         public async Task DisconnectAsync(CancellationToken userCancellation)
         {
             if (_disposed || ConnectionState == ConnectionState.Disconnected
-                          || ConnectionState == ConnectionState.Disconnecting)
+                          || ConnectionState == ConnectionState.Disconnecting
+                          || _websocket.State != WebSocketState.Open)
             {
                 _log.Warn("Disconnection rejected because the socket is already not connected");
                 return;
@@ -138,6 +140,7 @@ namespace MarketDataProvider.WebSocket
 
             ConnectionState = ConnectionState.Disconnected;
         }
+
         public async Task SendDataAsync(object data)
         {
             if (_disposed || ConnectionState != ConnectionState.Connected)
@@ -155,10 +158,10 @@ namespace MarketDataProvider.WebSocket
             try
             {
                 var json = JsonConvert.SerializeObject(data);
+
                 _messageLog.Info(json);
 
-                var charMemory = json.AsMemory();
-                var buffer = Unsafe.As<ReadOnlyMemory<char>, Memory<byte>>(ref charMemory);
+                var buffer = Encoding.UTF8.GetBytes(json);
 
                 await _websocket.SendAsync(buffer,
                     WebSocketMessageType.Text,
@@ -170,6 +173,7 @@ namespace MarketDataProvider.WebSocket
                 _log.Error("Failed to send the data", e);
             }
         }
+
         public void Dispose()
         {
             if (_disposed)
@@ -203,13 +207,24 @@ namespace MarketDataProvider.WebSocket
             {
                 _log.Error($"Invalid ConnectionParameters. Heartbeat frequency is too high");
 
-                throw new ArgumentException(string.Format(
+                throw new InvalidConfigurationException(string.Format(
                     "If {0}.{1} is set, {0}.{2} must be at least {3}. Setting the value too small will cause " +
                     "the server to get flooded, resulting in the connection being aborted.",
                 /*0*/   nameof(ConnectionParameters),
                     /*1*/   nameof(ConnectionParameters.UseHeartbeating),
                         /*2*/   nameof(ConnectionParameters.HeartbeatInterval),
                             /*3*/   _smallestHeartbeatRepeatFrequency));
+            }
+
+            var expectedlatency = TimeSpan.FromMicroseconds(100); 
+            if (parameters.UseHeartbeating && parameters.ConnectionTimeout < parameters.HeartbeatInterval.Add(expectedlatency))
+            {
+                _log.Error("When the heartbeat rate is lower that connection timeout, " +
+                    "it will lead to the loss of connection by timeout, since the server can stay silent until" +
+                    "user requests something");
+
+                throw new InvalidConfigurationException(
+                    $"Invalid ConnectionParameters. Heartbeat frequency is lower than the connection timeout");
             }
 
             if (parameters.ConnectionTimeout < _smallestConnectionTimeout &&
@@ -221,6 +236,7 @@ namespace MarketDataProvider.WebSocket
                     $"A minimum connection timeout of {_smallestConnectionTimeout} is allowed");
             }
         }
+
         private void BeginListening()
         {
             Task.Run(() =>
@@ -237,7 +253,7 @@ namespace MarketDataProvider.WebSocket
                     {
                         _websocket.ReceiveAsync(buffer, timeoutCancellation.Token).Wait();
 
-                        var json = Encoding.UTF8.GetString(buffer);
+                        var json = Encoding.UTF8.GetString(buffer, 0, Array.IndexOf<byte>(buffer, 0));
 
                         _messageLog.Info(json);
 
@@ -250,28 +266,49 @@ namespace MarketDataProvider.WebSocket
                     }
                     catch(WebSocketException e)
                     {
-                        _log.Error($"Socket faulted. Requesting reconnection", e);
-                        ConnectAsync(_connectionParameters, CancellationToken.None);
+                        ReconnectAfterError($"Socket faulted. Requesting reconnection", e);
+                        return;
                     }
                     catch (Exception e) when (TaskWasCancelled(e, timeoutCancellation))
                     {
-                        _log.Error($"Server did not reply in {_connectionParameters.ConnectionTimeout}", e);
-                        DisconnectAsync(CancellationToken.None);
+                        if (_websocket.State != WebSocketState.Open)
+                        {
+                            ReconnectAfterError($"Server is connected but does not respond. Try to connect later..", e);
+                            return;
+                        }
+                        else
+                        {
+                            _log.Error($"Server is connected but does not respond. Try to connect later..", e);
+                            DisconnectAsync(CancellationToken.None);
+                            return;
+                        }
                     }
                     catch (Exception e)
                     {
-                        _log.Error($"Reception from the server failed", e);
+                        if (_websocket.State != WebSocketState.Open)
+                        {
+                            ReconnectAfterError($"Reception from the server failed", e);
+                            return;
+                        }
                     }
                 }
             });
         }
+
+        private void ReconnectAfterError(string msg, Exception e)
+        {
+            _log.Error(msg, e);
+            ConnectionState = ConnectionState.Disconnected;
+            ConnectAsync(_connectionParameters, CancellationToken.None);
+        }
+
         private bool TaskWasCancelled(Exception e, CancellationTokenSource cancellation)
         {
             return (e is TaskCanceledException ||
                     e is AggregateException ae && ae.InnerException is TaskCanceledException)
-                    && cancellation.IsCancellationRequested
-                    && _websocket.State == WebSocketState.Open;
+                    && cancellation.IsCancellationRequested;
         }
+
         private void SetHeartbeatTask(TimeSpan period)
         {
             if (_connectionParameters!.UseHeartbeating is false)
@@ -290,16 +327,19 @@ namespace MarketDataProvider.WebSocket
             _log.Debug($"Heartbeating initiated");
             _heartbeatTimer = new Timer(OnHeartbeatRequired, null, period, period);
         }
+
         private void StopHeartbeatTask()
         {
             _heartbeatTimer?.Dispose();
             _heartbeatTimer = null;
             _log.Debug($"Heartbeating stopped");
         }
+
         private void OnHeartbeatRequired(object? _)
         {
-            if (ConnectionState != ConnectionState.Connected)
+            if (ConnectionState != ConnectionState.Connected || _websocket.State != WebSocketState.Open)
             {
+                _log.Debug($"Time to send a heartbeat, but connection is closed");
                 return;
             }
 
