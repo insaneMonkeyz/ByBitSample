@@ -234,7 +234,7 @@ namespace ConsoleUI
         private static string? _emptyLine;
         private static int _contentLength;
         private static bool _initialized;
-        private static ConsoleViewmodel _viewmodel;
+        private static ConsoleViewmodel? _viewmodel;
         private static readonly object _outputSync = new();
     }
 }
