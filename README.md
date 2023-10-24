@@ -32,33 +32,33 @@ class implements the
 interface. It operates at a more abstract level, converting user requests into requests to the exchange.
 
 
-### тоже самое, но другими буквами
+### С‚РѕР¶Рµ СЃР°РјРѕРµ, РЅРѕ РґСЂСѓРіРёРјРё Р±СѓРєРІР°РјРё
 
-Проект состоит из двух основных компонентов: 
+РџСЂРѕРµРєС‚ СЃРѕСЃС‚РѕРёС‚ РёР· РґРІСѓС… РѕСЃРЅРѕРІРЅС‹С… РєРѕРјРїРѕРЅРµРЅС‚РѕРІ: 
 [ConsoleUI](https://github.com/insaneMonkeyz/ByBitSample/tree/main/ConsoleUI),
-воплощающий консольный интерфейс взаимодействия с пользователем, и 
+РІРѕРїР»РѕС‰Р°СЋС‰РёР№ РєРѕРЅСЃРѕР»СЊРЅС‹Р№ РёРЅС‚РµСЂС„РµР№СЃ РІР·Р°РёРјРѕРґРµР№СЃС‚РІРёСЏ СЃ РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј, Рё 
 [MarketDataProvider](https://github.com/insaneMonkeyz/ByBitSample/tree/main/MarketDataProvider), 
-инкапсулирующий логику сообщения с биржей.
+РёРЅРєР°РїСЃСѓР»РёСЂСѓСЋС‰РёР№ Р»РѕРіРёРєСѓ СЃРѕРѕР±С‰РµРЅРёСЏ СЃ Р±РёСЂР¶РµР№.
 
-В проекте ConsoleUI есть 
-[одноименный](https://github.com/insaneMonkeyz/ByBitSample/blob/main/ConsoleUI/ConsoleUI.cs) 
-класс, занимающийся отрисовкой, и класс 
+Р’ РїСЂРѕРµРєС‚Рµ ConsoleUI РµСЃС‚СЊ 
+[РѕРґРЅРѕРёРјРµРЅРЅС‹Р№](https://github.com/insaneMonkeyz/ByBitSample/blob/main/ConsoleUI/ConsoleUI.cs) 
+РєР»Р°СЃСЃ, Р·Р°РЅРёРјР°СЋС‰РёР№СЃСЏ РѕС‚СЂРёСЃРѕРІРєРѕР№, Рё РєР»Р°СЃСЃ 
 [ConsoleViewModel](https://github.com/insaneMonkeyz/ByBitSample/blob/main/ConsoleUI/ConsoleViewmodel.cs), 
-реализующий взаимодействие представления с логикой приложения.
+СЂРµР°Р»РёР·СѓСЋС‰РёР№ РІР·Р°РёРјРѕРґРµР№СЃС‚РІРёРµ РїСЂРµРґСЃС‚Р°РІР»РµРЅРёСЏ СЃ Р»РѕРіРёРєРѕР№ РїСЂРёР»РѕР¶РµРЅРёСЏ.
 
-Для взаимодействия с биржей используются 2 основных интерфейса - 
+Р”Р»СЏ РІР·Р°РёРјРѕРґРµР№СЃС‚РІРёСЏ СЃ Р±РёСЂР¶РµР№ РёСЃРїРѕР»СЊР·СѓСЋС‚СЃСЏ 2 РѕСЃРЅРѕРІРЅС‹С… РёРЅС‚РµСЂС„РµР№СЃР° - 
 [IMarketDataProvider](https://github.com/insaneMonkeyz/ByBitSample/blob/main/MarketDataProvider/Public/IMarketDataProvider.cs) 
-для работы с данными и 
+РґР»СЏ СЂР°Р±РѕС‚С‹ СЃ РґР°РЅРЅС‹РјРё Рё 
 [IConnection](https://github.com/insaneMonkeyz/ByBitSample/blob/main/MarketDataProvider/Public/IConnection.cs) 
-управления соединением.
+СѓРїСЂР°РІР»РµРЅРёСЏ СЃРѕРµРґРёРЅРµРЅРёРµРј.
 
-Интерфейс [IConnection](https://github.com/insaneMonkeyz/ByBitSample/blob/main/MarketDataProvider/Public/IConnection.cs) 
-реализуется классом 
+РРЅС‚РµСЂС„РµР№СЃ [IConnection](https://github.com/insaneMonkeyz/ByBitSample/blob/main/MarketDataProvider/Public/IConnection.cs) 
+СЂРµР°Р»РёР·СѓРµС‚СЃСЏ РєР»Р°СЃСЃРѕРј 
 [WebSocketConnection](https://github.com/insaneMonkeyz/ByBitSample/blob/main/MarketDataProvider/WebSocket/WebSocketConnection.cs). 
-В нём вся логика по поддержке соединения - переподключение в случае разрывов и фоновом пинговании сервера, чтобы он сам не отключался.
+Р’ РЅС‘Рј РІСЃСЏ Р»РѕРіРёРєР° РїРѕ РїРѕРґРґРµСЂР¶РєРµ СЃРѕРµРґРёРЅРµРЅРёСЏ - РїРµСЂРµРїРѕРґРєР»СЋС‡РµРЅРёРµ РІ СЃР»СѓС‡Р°Рµ СЂР°Р·СЂС‹РІРѕРІ Рё С„РѕРЅРѕРІРѕРј РїРёРЅРіРѕРІР°РЅРёРё СЃРµСЂРІРµСЂР°, С‡С‚РѕР±С‹ РѕРЅ СЃР°Рј РЅРµ РѕС‚РєР»СЋС‡Р°Р»СЃСЏ.
 
-Интерфейс 
+РРЅС‚РµСЂС„РµР№СЃ 
 [IMarketDataProvider](https://github.com/insaneMonkeyz/ByBitSample/blob/main/MarketDataProvider/Public/IMarketDataProvider.cs) 
-реализуется классом 
+СЂРµР°Р»РёР·СѓРµС‚СЃСЏ РєР»Р°СЃСЃРѕРј 
 [BybitMarketDataProvider](https://github.com/insaneMonkeyz/ByBitSample/blob/main/MarketDataProvider/BybitMarketDataProvider.cs), 
-который работает на более высоком уровне абстракции, и занимается преобразованием запросов пользователя в запросы бирже.
+РєРѕС‚РѕСЂС‹Р№ СЂР°Р±РѕС‚Р°РµС‚ РЅР° Р±РѕР»РµРµ РІС‹СЃРѕРєРѕРј СѓСЂРѕРІРЅРµ Р°Р±СЃС‚СЂР°РєС†РёРё, Рё Р·Р°РЅРёРјР°РµС‚СЃСЏ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµРј Р·Р°РїСЂРѕСЃРѕРІ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РІ Р·Р°РїСЂРѕСЃС‹ Р±РёСЂР¶Рµ.
