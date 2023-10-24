@@ -1,4 +1,6 @@
-﻿namespace MarketDataProvider.WebSocket
+﻿using MarketDataProvider.WebSocket;
+
+namespace MarketDataProvider.Factories
 {
     public interface IAbstractWebSocketFactory
     {

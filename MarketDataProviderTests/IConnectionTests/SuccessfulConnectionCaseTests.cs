@@ -2,6 +2,7 @@ using System.Data.Common;
 using System.Linq.Expressions;
 using System.Net.WebSockets;
 using MarketDataProvider;
+using MarketDataProvider.Factories;
 using MarketDataProvider.WebSocket;
 using Moq;
 

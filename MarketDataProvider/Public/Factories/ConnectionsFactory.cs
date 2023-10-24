@@ -1,6 +1,6 @@
 ﻿using MarketDataProvider.WebSocket;
 
-namespace MarketDataProvider
+namespace MarketDataProvider.Factories
 {
     public class ConnectionsFactory
     {

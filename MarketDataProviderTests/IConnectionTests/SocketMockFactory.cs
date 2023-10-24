@@ -1,4 +1,5 @@
-﻿using MarketDataProvider.WebSocket;
+﻿using MarketDataProvider.Factories;
+using MarketDataProvider.WebSocket;
 using Moq;
 
 namespace MarketDataProviderTests.IConnectionTests

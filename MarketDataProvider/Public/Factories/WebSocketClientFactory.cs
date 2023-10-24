@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using MarketDataProvider.WebSocket;
 
-namespace MarketDataProvider.WebSocket
+namespace MarketDataProvider.Factories
 {
     public class WebSocketClientFactory : IAbstractWebSocketFactory
     {

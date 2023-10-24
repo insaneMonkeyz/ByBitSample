@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using MarketDataProvider.Exceptions;
+using MarketDataProvider.Factories;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ZeroLog;

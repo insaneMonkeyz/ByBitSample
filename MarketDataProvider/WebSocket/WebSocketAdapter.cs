@@ -5,7 +5,7 @@ namespace MarketDataProvider.WebSocket
     // ClientWebSocket does not implement any interfaces, which is painful to mock during testing.
     // To avoid messing around with shims and fakes, we'll just wrap the real socket in this class,
     // and make the consumers of the socket depend on the interface
-    public class WebSocketAdapter : IWebSocketClient
+    internal class WebSocketAdapter : IWebSocketClient
     {
         private readonly ClientWebSocket _socket = new();
 

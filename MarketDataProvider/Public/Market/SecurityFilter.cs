@@ -1,8 +1,6 @@
-﻿using MarketDataProvider;
+﻿namespace MarketDataProvider;
 
-namespace ConsoleUI;
-
-class SecurityFilter : ISecurityFilter
+public class SecurityFilter : ISecurityFilter
 {
     public string? TickerTemplate { get; set; }
     public SecurityKind? Kind { get; set; }

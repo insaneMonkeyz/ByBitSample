@@ -1,5 +1,6 @@
 ﻿using MarketDataProvider;
 using MarketDataProvider.Exceptions;
+using MarketDataProvider.Factories;
 
 namespace ConsoleUI;
 

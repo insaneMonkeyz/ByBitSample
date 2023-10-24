@@ -4,6 +4,7 @@ using System.Net.WebSockets;
 using System.Runtime.Intrinsics.X86;
 using MarketDataProvider;
 using MarketDataProvider.Exceptions;
+using MarketDataProvider.Factories;
 using MarketDataProvider.WebSocket;
 using Moq;
 using Newtonsoft.Json.Linq;
